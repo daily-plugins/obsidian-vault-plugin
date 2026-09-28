@@ -90,6 +90,62 @@ export class Vault {
       nextOffset: end < note.content.length ? end : null, totalChars: note.content.length };
   }
 
+  async listEntries(folder = "", maxDepth = 4, maxEntries = 200, markdownOnly = false) {
+    if (!Number.isInteger(maxDepth) || maxDepth < 1 || maxDepth > 64) throw new VaultError("Depth must be between 1 and 64.");
+    if (!Number.isInteger(maxEntries) || maxEntries < 1 || maxEntries > 5000) throw new VaultError("Entry limit must be between 1 and 5000.");
+    await this.resolve(folder, true);
+    const entries: { path: string; name: string; type: "file" | "directory"; depth: number }[] = [];
+    const queue = [{ path: folder, depth: 0 }];
+    let visitedEntries = 0, skippedEntries = 0, truncated = false;
+    outer: while (queue.length) {
+      const directory = queue.shift()!;
+      let dir;
+      try { dir = await opendir(await this.resolve(directory.path, true)); }
+      catch { skippedEntries++; continue; }
+      for await (const entry of dir) {
+        if (++visitedEntries > LIMITS.searchEntries) { truncated = true; break outer; }
+        if (entry.name.startsWith(".") || entry.name === "node_modules" || entry.isSymbolicLink()) continue;
+        const path = directory.path ? `${directory.path}/${entry.name}` : entry.name;
+        if (this.config.excludedPaths.some(excluded => path === excluded || path.startsWith(`${excluded}/`))) continue;
+        if (!entry.isFile() && !entry.isDirectory()) continue;
+        if (markdownOnly && entry.isFile() && !entry.name.toLowerCase().endsWith(".md")) continue;
+        try { await this.resolve(path, entry.isDirectory()); } catch { skippedEntries++; continue; }
+        const depth = directory.depth + 1;
+        entries.push({ path, name: entry.name, type: entry.isDirectory() ? "directory" : "file", depth });
+        if (entry.isDirectory()) {
+          if (depth < maxDepth) queue.push({ path, depth });
+          else truncated = true;
+        }
+        if (entries.length >= maxEntries) { truncated = true; break outer; }
+      }
+    }
+    entries.sort((a, b) => a.path < b.path ? -1 : a.path > b.path ? 1 : 0);
+    return { folder, entries, skippedEntries, truncated };
+  }
+
+  async getTree(folder = "", maxDepth = 4, maxEntries = 200) {
+    const result = await this.listEntries(folder, maxDepth, maxEntries);
+    const children = new Map<string, typeof result.entries>();
+    for (const entry of result.entries) {
+      const parent = entry.path.includes("/") ? entry.path.slice(0, entry.path.lastIndexOf("/")) : "";
+      const siblings = children.get(parent) ?? [];
+      siblings.push(entry);
+      children.set(parent, siblings);
+    }
+    const lines = [folder ? `${folder}/` : "/"];
+    const render = (parent: string, prefix: string) => {
+      const siblings = children.get(parent) ?? [];
+      siblings.sort((a, b) => a.type === b.type ? (a.name < b.name ? -1 : a.name > b.name ? 1 : 0) : a.type === "directory" ? -1 : 1);
+      siblings.forEach((entry, index) => {
+        const last = index === siblings.length - 1;
+        lines.push(`${prefix}${last ? "└── " : "├── "}${entry.name}${entry.type === "directory" ? "/" : ""}`);
+        if (entry.type === "directory") render(entry.path, prefix + (last ? "    " : "│   "));
+      });
+    };
+    render(folder, "");
+    return { ...result, tree: lines.join("\n") };
+  }
+
   async searchNotes(query: string, folder = "", limit = 20) {
     if (!query.trim() || query.length > 200) throw new VaultError("Query must contain 1–200 characters.");
     if (!Number.isInteger(limit) || limit < 1 || limit > 50) throw new VaultError("Limit must be between 1 and 50.");

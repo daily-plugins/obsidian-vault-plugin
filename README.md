@@ -97,6 +97,15 @@ searches. Hidden path segments (including `.obsidian`, `.git`, and `.trash`),
 Use `/` separators and exact paths returned by search; absolute paths, `..`,
 and `.` segments are rejected.
 
+## Vault file tree
+
+Call `get_vault_tree` with `{"folder": "", "maxDepth": 4, "maxEntries": 200}`.
+The result contains a human-readable `tree` and structured relative-path `entries`.
+Visible attachment names are included, but their contents are not read. Directories
+at the depth limit are not expanded. `truncated` flags any depth, entry, or scan
+limit; call again with a specific `folder` to inspect a subtree. Hidden paths,
+excluded paths, symlinks, and hard-linked files remain inaccessible.
+
 ## Limits and verification
 
 - Only regular UTF-8 `.md` files, including uppercase `.MD`, are supported.

@@ -86,7 +86,10 @@ test("MCP stdio exposes tools, validates inputs, and returns sanitized errors", 
   try {
     await client.connect(new StdioClientTransport({command: process.execPath, args: ["dist/index.js"],
       env: {OBSIDIAN_VAULT_PATH: f.root, OBSIDIAN_VAULT_ID: "test", OBSIDIAN_EXCLUDED_PATHS: '["private"]'}}));
-    assert.deepEqual((await client.listTools()).tools.map(t => t.name), ["get_vault_context", "search_notes", "read_note"]);
+    assert.deepEqual((await client.listTools()).tools.map(t => t.name), ["get_vault_context", "search_notes", "read_note", "get_vault_tree"]);
+    const tree = await client.callTool({name: "get_vault_tree", arguments: {}});
+    assert.equal(tree.isError, undefined);
+    assert.ok(String(tree.structuredContent?.tree).includes("notes/"));
     const search = await client.callTool({name: "search_notes", arguments: {query: "OPIC"}});
     assert.equal(search.isError, undefined);
     assert.deepEqual((search.structuredContent?.results as {path: string}[]).map(r => r.path), ["notes/학습.md"]);
@@ -101,4 +104,26 @@ test("MCP stdio exposes tools, validates inputs, and returns sanitized errors", 
     const invalid = await client.callTool({name: "search_notes", arguments: {query: "", limit: 100}});
     assert.equal(invalid.isError, true);
   } finally { await client.close(); await rm(f.temp, { recursive: true, force: true }); }
+});
+
+test("tree renders hierarchy and attachments while enforcing exclusions and bounds", async () => {
+  const f = await fixture();
+  try {
+    await mkdir(join(f.root, "notes", "nested"));
+    await writeFile(join(f.root, "notes", "nested", "deep.md"), "Deep");
+    await writeFile(join(f.root, "notes", "image.png"), "attachment fixture");
+    const tree = await f.vault.getTree();
+    assert.ok(tree.tree.includes("notes/"));
+    assert.ok(tree.tree.includes("image.png"));
+    assert.ok(tree.entries.some(e => e.path === "notes/nested/deep.md" && e.depth === 3));
+    assert.ok(!tree.entries.some(e => /secret|escape|link|node_modules/.test(e.path)));
+    assert.equal((await f.vault.getTree("", 1)).truncated, true);
+    const limited = await f.vault.getTree("", 4, 1);
+    assert.equal(limited.entries.length, 1);
+    assert.equal(limited.truncated, true);
+    const subtree = await f.vault.getTree("notes");
+    assert.ok(subtree.entries.every(e => e.path.startsWith("notes/")));
+    await assert.rejects(() => f.vault.getTree("../"));
+    await assert.rejects(() => f.vault.getTree("escape-dir"));
+  } finally { await rm(f.temp, { recursive: true, force: true }); }
 });

@@ -5,7 +5,7 @@ import type { VaultConfig } from "./config.js";
 import { LIMITS, safeError, Vault } from "./vault.js";
 
 const annotations = { readOnlyHint: true, destructiveHint: false, openWorldHint: false };
-const capabilities = ["get_vault_context", "search_notes", "read_note"];
+const capabilities = ["get_vault_context", "search_notes", "read_note", "get_vault_tree"];
 async function respond(action: () => Promise<Record<string, unknown>>): Promise<CallToolResult> {
   try {
     const result = await action();
@@ -59,5 +59,19 @@ export function createServer(config: VaultConfig): McpServer {
     },
     annotations,
   }, ({ path, offset, maxChars }) => respond(() => vault.readNote(path, offset, maxChars)));
+  server.registerTool("get_vault_tree", {
+    title: "Show Vault file tree",
+    description: "List visible folders and files as a text tree and structured entries. Includes attachment filenames, but never reads attachment contents. Hidden/excluded paths and links are omitted. Truncation can indicate a depth, entry, or scan limit; use folder to expand a subtree.",
+    inputSchema: {
+      folder: z.string().max(1024).default(""),
+      maxDepth: z.number().int().min(1).max(20).default(4),
+      maxEntries: z.number().int().min(1).max(1000).default(200),
+    },
+    outputSchema: {
+      folder: z.string(), tree: z.string(), truncated: z.boolean(), skippedEntries: z.number(),
+      entries: z.array(z.object({path: z.string(), name: z.string(), type: z.enum(["file", "directory"]), depth: z.number()})),
+    },
+    annotations,
+  }, ({folder, maxDepth, maxEntries}) => respond(() => vault.getTree(folder, maxDepth, maxEntries)));
   return server;
 }
