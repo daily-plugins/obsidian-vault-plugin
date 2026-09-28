@@ -3,6 +3,7 @@ import { lstat, open, opendir, realpath } from "node:fs/promises";
 import { createHash } from "node:crypto";
 import { isAbsolute, join, relative, sep, win32 } from "node:path";
 import type { VaultConfig } from "./config.js";
+import { SETTINGS_NAMES } from "./settings-files.js";
 
 export const LIMITS = { fileBytes: 1_048_576, pageChars: 20_000, searchFiles: 2_000, searchEntries: 10_000, searchBytes: 20_971_520 } as const;
 export class VaultError extends Error {}
@@ -30,8 +31,14 @@ export class Vault {
 
   async assertDirectory(path: string): Promise<void> { await this.resolve(path, true); }
 
-  private async resolve(path: string, directory = false): Promise<string> {
-    validateRelativePath(path, directory);
+  private async resolve(path: string, directory = false, configuration = false): Promise<string> {
+    if (configuration) {
+      const configDir = this.config.configDir ?? ".obsidian";
+      if (!/^\.[A-Za-z0-9][A-Za-z0-9._-]{0,63}$/u.test(configDir) ||
+          !SETTINGS_NAMES.some(name => path === `${configDir}/${name}`)) {
+        throw new VaultError("Only allowlisted Vault configuration files may be read.");
+      }
+    } else validateRelativePath(path, directory);
     if (this.config.excludedPaths.some(excluded => path === excluded || path.startsWith(`${excluded}/`))) {
       throw new VaultError("This path is excluded from Vault access.");
     }
@@ -55,16 +62,22 @@ export class Vault {
     return canonical;
   }
 
-  async readDocument(path: string) {
-    if (!path.toLowerCase().endsWith(".md")) throw new VaultError("Only Markdown (.md) notes are supported.");
-    const file = await this.resolve(path);
+  async readSettingsDocument(name: string) {
+    return this.readText(`${this.config.configDir ?? ".obsidian"}/${name}`, true);
+  }
+
+  async readDocument(path: string) { return this.readText(path); }
+
+  private async readText(path: string, configuration = false) {
+    if (!configuration && !path.toLowerCase().endsWith(".md")) throw new VaultError("Only Markdown (.md) notes are supported.");
+    const file = await this.resolve(path, false, configuration);
     const handle = await open(file, constants.O_RDONLY | constants.O_NOFOLLOW | constants.O_NONBLOCK);
     try {
       const before = await handle.stat();
       if (!before.isFile() || before.nlink > 1) throw new VaultError("Only regular, non-hard-linked notes are supported.");
       if (before.size > LIMITS.fileBytes) throw new VaultError("Note exceeds the 1 MiB read limit.");
       // Recheck the pathname after opening, before reading any note content.
-      const checked = await this.resolve(path);
+      const checked = await this.resolve(path, false, configuration);
       const current = await lstat(checked);
       if (current.dev !== before.dev || current.ino !== before.ino) throw new VaultError("Note changed while opening. Retry.");
       const buffer = Buffer.alloc(LIMITS.fileBytes + 1);

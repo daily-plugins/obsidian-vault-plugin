@@ -157,6 +157,31 @@ individual files with `read_note` and the returned `nextOffset`. `truncated`,
 `skippedFiles`, and `incompleteScopes` indicate incomplete discovery/content;
 do not infer missing instructions or deletions from incomplete results.
 
+## Vault settings inspection
+
+Use `list_obsidian_settings` with `{}` to inspect supported settings files,
+then `read_obsidian_settings` with `{"file": "graph.json"}` to read one.
+An optional `key` selects a top-level JSON property or array index after redaction.
+
+This is a narrow exception to the hidden-file policy: only the allowlisted JSON
+files in the configured Vault settings folder can be read. `read_note` and tree
+search still cannot access hidden folders. Set `OBSIDIAN_CONFIG_DIR` if you use
+Obsidian's **Override config folder** feature; it defaults to `.obsidian`.
+
+Supported files cover app, appearance, graph, hotkeys, core/community plugin
+lists, Daily Notes, templates, bookmarks, and desktop/mobile/saved workspaces.
+The tools do not expose global application data or community plugin `data.json`.
+Known secret-bearing keys/values, credential-bearing URLs, and absolute paths are
+redacted. Redaction is best-effort; arbitrary secrets cannot be detected reliably.
+
+Files are limited to 1 MiB; nesting, collection size, long strings, and response
+size are bounded. A `truncated` result is incomplete. Settings filenames/fields
+are version-dependent compatibility details, not a stable official JSON schema.
+A missing settings file may mean defaults, and disk state may lag in-memory state.
+
+Official references: [Configuration folder](https://obsidian.md/help/configuration-folder)
+and [How Obsidian stores data](https://obsidian.md/help/data-storage).
+
 ## Limits and verification
 
 - Only regular UTF-8 `.md` files, including uppercase `.MD`, are supported.

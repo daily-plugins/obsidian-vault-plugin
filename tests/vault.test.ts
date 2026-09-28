@@ -84,12 +84,26 @@ test("MCP stdio exposes tools, validates inputs, and returns sanitized errors", 
   const f = await fixture();
   const client = new Client({name: "integration-test", version: "1.0.0"});
   try {
+    await writeFile(join(f.root, "AGENTS.md"), "Use scoped instructions.");
+    await writeFile(join(f.root, ".obsidian", "graph.json"), '{"showOrphans":true,"apiKey":"secret"}');
     await client.connect(new StdioClientTransport({command: process.execPath, args: ["dist/index.js"],
       env: {OBSIDIAN_VAULT_PATH: f.root, OBSIDIAN_VAULT_ID: "test", OBSIDIAN_EXCLUDED_PATHS: '["private"]'}}));
-    assert.deepEqual((await client.listTools()).tools.map(t => t.name), ["get_vault_context", "search_notes", "read_note", "get_vault_tree", "capture_graph_view", "list_instruction_files", "get_applicable_instructions"]);
+    assert.deepEqual((await client.listTools()).tools.map(t => t.name), ["get_vault_context", "search_notes", "read_note", "get_vault_tree", "capture_graph_view", "list_instruction_files", "get_applicable_instructions", "list_obsidian_settings", "read_obsidian_settings"]);
     const tree = await client.callTool({name: "get_vault_tree", arguments: {}});
     assert.equal(tree.isError, undefined);
     assert.ok(String(tree.structuredContent?.tree).includes("notes/"));
+    const instructions = await client.callTool({name: "get_applicable_instructions", arguments: {path: "notes/new.md"}});
+    assert.equal(instructions.isError, undefined);
+    assert.equal((instructions.structuredContent?.instructions as {path: string}[])[0]?.path, "AGENTS.md");
+    const discovered = await client.callTool({name: "list_instruction_files", arguments: {}});
+    assert.equal(discovered.isError, undefined);
+    const settings = await client.callTool({name: "read_obsidian_settings", arguments: {file: "graph.json"}});
+    assert.equal(settings.isError, undefined);
+    assert.deepEqual(settings.structuredContent?.data, {showOrphans: true, apiKey: "[REDACTED]"});
+    const available = await client.callTool({name: "list_obsidian_settings", arguments: {}});
+    assert.equal(available.isError, undefined);
+    const denied = await client.callTool({name: "read_obsidian_settings", arguments: {file: "plugins/test/data.json"}});
+    assert.equal(denied.isError, true);
     const search = await client.callTool({name: "search_notes", arguments: {query: "OPIC"}});
     assert.equal(search.isError, undefined);
     assert.deepEqual((search.structuredContent?.results as {path: string}[]).map(r => r.path), ["notes/학습.md"]);

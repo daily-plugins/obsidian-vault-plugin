@@ -4,10 +4,12 @@ import { z } from "zod";
 import type { VaultConfig } from "./config.js";
 import { LIMITS, safeError, Vault } from "./vault.js";
 import { captureGraphView } from "./graph-view.js";
+import { listObsidianSettings, readObsidianSettings } from "./settings.js";
+import { SETTINGS_NAMES } from "./settings-files.js";
 import { DEFAULT_INSTRUCTION_NAMES, listInstructionFiles, getApplicableInstructions } from "./instructions.js";
 
 const annotations = { readOnlyHint: true, destructiveHint: false, openWorldHint: false };
-const capabilities = ["get_vault_context", "search_notes", "read_note", "get_vault_tree", "capture_graph_view", "list_instruction_files", "get_applicable_instructions"];
+const capabilities = ["get_vault_context", "search_notes", "read_note", "get_vault_tree", "capture_graph_view", "list_instruction_files", "get_applicable_instructions", "list_obsidian_settings", "read_obsidian_settings"];
 async function respond(action: () => Promise<Record<string, unknown>>): Promise<CallToolResult> {
   try {
     const result = await action();
@@ -107,5 +109,20 @@ export function createServer(config: VaultConfig): McpServer {
       truncated: z.boolean(), skippedFiles: z.number(), incompleteScopes: z.array(z.string()), order: z.string(), notice: z.string()},
     annotations,
   }, ({path, targetType, filenames}) => respond(() => getApplicableInstructions(vault, path, targetType, filenames)));
+  server.registerTool("list_obsidian_settings", {
+    title: "List Obsidian Vault settings files",
+    description: "Inspect availability of allowlisted saved JSON settings in the Vault configuration folder (default .obsidian; configurable locally). Returns file purpose, availability, and revision without contents. Use before read_obsidian_settings. Covers app, appearance, graph, hotkeys, core/community plugin lists, Daily Notes, templates, bookmarks, and workspace layouts. Excludes global settings and all community plugin data.json files. Missing files may mean defaults, not disabled features. Official storage model: https://obsidian.md/help/configuration-folder",
+    inputSchema: {},
+    outputSchema: {files: z.array(z.object({file: z.string(), purpose: z.string(), status: z.string(), revision: z.string().nullable()})), source: z.string()},
+    annotations,
+  }, () => respond(() => listObsidianSettings(vault)));
+  server.registerTool("read_obsidian_settings", {
+    title: "Read Obsidian Vault settings",
+    description: "Read one allowlisted saved Vault settings JSON file with best-effort secret and absolute-path redaction. Unlike read_note, this narrowly permits selected files inside the configuration folder. Returns parsed data and a revision; never edits settings. Fields and filenames are version-dependent implementation details, not a stable Obsidian API. Optional key selects a top-level property or array index after redaction. Do not infer live in-memory settings from this disk snapshot. Official storage model: https://obsidian.md/help/data-storage",
+    inputSchema: {file: z.enum(SETTINGS_NAMES).describe("Exact allowlisted filename from list_obsidian_settings, such as graph.json."),
+      key: z.string().min(1).max(128).optional().describe("Optional exact top-level JSON property or array index; not a filesystem path or JSONPath expression.")},
+    outputSchema: {file: z.string(), key: z.string().nullable(), revision: z.string(), data: z.unknown(), redactedValues: z.number(), truncated: z.boolean(), notice: z.string()},
+    annotations,
+  }, ({file, key}) => respond(() => readObsidianSettings(vault, file, key)));
   return server;
 }
