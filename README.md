@@ -4,7 +4,7 @@ A plugin for searching and inspecting a selected local Obsidian Vault from MCP-c
 
 ## Current status
 
-- A stdio MCP server built with TypeScript and the MCP SDK
+- Stdio and authenticated Streamable HTTP MCP transports built with TypeScript and the MCP SDK
 - Single-Vault configuration through environment variables, with directory validation
 - `get_vault_context`: returns the Vault ID and currently implemented capabilities
 - `search_notes`: case-insensitive literal search across Markdown paths and contents
@@ -22,6 +22,19 @@ Packaged MCP connection configuration and public deployment are not implemented 
 The manifest is a package scaffold, not a complete installable plugin.
 The server checks that the configured path is an accessible directory; it does not automatically verify that it is an Obsidian Vault.
 
+## Choose a connection
+
+| Mode | Start command | Configuration | Guide |
+| --- | --- | --- | --- |
+| OpenAI private tunnel | `npm run start:tunnel` | `.env` + `.env.tunnel` | [Tunnel setup](docs/tunnel-connection.md) |
+| Streamable HTTP | `npm run start:http` | `.env` + `.env.http` | [HTTP setup](docs/http-connection.md) |
+| Local stdio | `npm run start:stdio` | `.env` | Getting started below |
+
+Choose the mode in your client and run the corresponding command. Tunnel and
+HTTP expose the same tools. HTTP requires a Bearer-capable client; public ChatGPT
+HTTP access additionally needs a compatible authenticated HTTPS gateway.
+[한국어 문서](notes/ko/README.md)
+
 ## Getting started
 
 Requires Node.js 20.20 or later.
@@ -36,7 +49,7 @@ npm start
 ```
 
 Use `npm run dev` for development. Run all commands from the project root.
-The stdio server waits for requests from an MCP client; it does not open a web page or an HTTP port.
+`npm start` defaults to stdio. The stdio server waits for requests from an MCP client; it does not open a web page or an HTTP port.
 Standard output is reserved for the MCP protocol. Send diagnostic logs to standard error.
 
 To connect through the local MCP Inspector:
@@ -232,6 +245,11 @@ src/settings.ts           Allowlisted JSON settings and redaction
 src/settings-files.ts     Supported settings file catalog
 tests/vault.test.ts        File access and MCP integration tests
 src/index.ts              Stdio entry point
+src/http.ts               Authenticated HTTP endpoint and sessions
+src/http-index.ts         HTTP entry point
+docs/tunnel-connection.md  Tunnel configuration and startup
+docs/http-connection.md    HTTP configuration and startup
+notes/ko/                 Korean translations mirroring Markdown paths
 docs/architecture.md      Architecture and implementation roadmap
 docs/tools.md             Agent-facing semantics and official references
 .env.example              Example local configuration

@@ -15,7 +15,11 @@
     "tunnel:init": "node scripts/tunnel.mjs init",
     "tunnel:doctor": "node scripts/tunnel.mjs doctor",
     "remote": "node scripts/tunnel.mjs run",
-    "test": "npm run build && tsx --test tests/*.test.ts"
+    "test": "npm run build && tsx --test tests/*.test.ts",
+    "start:stdio": "node --env-file=.env dist/index.js",
+    "start:http": "node --env-file=.env --env-file=.env.http dist/http-index.js",
+    "dev:http": "tsx --env-file=.env --env-file=.env.http src/http-index.ts",
+    "start:tunnel": "node scripts/tunnel.mjs run"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.30.1",

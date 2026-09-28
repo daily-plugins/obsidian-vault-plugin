@@ -1,6 +1,6 @@
 # Project workflow
 
-- Write project documentation in English.
+- Keep primary project documentation in English. Maintain Korean translations under `notes/ko`, mirroring each source Markdown path, as requested by the user.
 - Complete work in focused, reviewable task-sized changes.
 - Run checks appropriate to each change, then commit that task before starting the next task.
 - Use concise commit messages that describe the change.

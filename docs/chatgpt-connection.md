@@ -1,5 +1,8 @@
 # Connect the local Vault to ChatGPT
 
+This guide covers private tunnel connections. For mode-specific configuration
+and startup see [Tunnel](tunnel-connection.md) or [HTTP](http-connection.md).
+
 ## Connection model
 
 ```text

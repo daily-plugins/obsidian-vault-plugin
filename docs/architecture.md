@@ -7,7 +7,7 @@ Keep file access separate from the MCP transport layer.
 
 ## Connection architecture
 
-Obsidian Vault Plugin exposes a client-independent stdio MCP interface. Local MCP
+Obsidian Vault Plugin exposes a client-independent stdio and Streamable HTTP MCP interfaces. Local MCP
 clients can connect directly; ChatGPT uses the optional tunnel connection below.
 
 Personal development: ChatGPT → Secure MCP Tunnel → local MCP server → Vault.
@@ -17,6 +17,11 @@ A tunnel connection requires Platform tunnel configuration, a runtime key, appro
 Public deployment: ChatGPT → public HTTPS MCP gateway → authenticated local agent → Vault.
 This proposed architecture requires user, device, and Vault mapping, OAuth, offline handling, and Streamable HTTP support.
 Secure MCP Tunnel does not replace the public endpoint required for public plugin distribution.
+
+HTTP mode: MCP client → authenticated `/mcp` → per-session MCP server → Vault.
+It uses an exact Host/Origin allowlist and a shared Bearer token, defaults to
+loopback, and retains separate instruction review state per session. HTTP is
+single-owner; public multi-user authentication still requires a gateway.
 
 ## Implementation roadmap
 

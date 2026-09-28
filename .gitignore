@@ -4,6 +4,7 @@ dist/
 .env.*
 !.env.example
 !.env.tunnel.example
+!.env.http.example
 *.log
 .DS_Store
 coverage/
