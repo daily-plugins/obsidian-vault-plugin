@@ -114,7 +114,7 @@ Start with small requests and check the displayed tool calls:
 
 Graph capture requires the desktop app and official Obsidian CLI. It opens the
 Graph view and sends a screenshot that may include sidebars. Filesystem exclusions
-do not mask the screenshot. The [tool guide](tools.md) describes all nine tools.
+do not mask the screenshot. The [tool guide](tools.md) describes all eleven tools.
 
 ## Troubleshooting and lifecycle
 

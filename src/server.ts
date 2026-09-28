@@ -1,3 +1,4 @@
+import { InstructionReviews } from "./instruction-review.js";
 import { readFile } from "node:fs/promises";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
@@ -7,10 +8,10 @@ import { LIMITS, safeError, Vault } from "./vault.js";
 import { captureGraphView } from "./graph-view.js";
 import { listObsidianSettings, readObsidianSettings } from "./settings.js";
 import { SETTINGS_NAMES } from "./settings-files.js";
-import { DEFAULT_INSTRUCTION_NAMES, listInstructionFiles, getApplicableInstructions } from "./instructions.js";
+import { DEFAULT_INSTRUCTION_NAMES, listInstructionFiles } from "./instructions.js";
 
 const annotations = { readOnlyHint: true, destructiveHint: false, openWorldHint: false };
-const capabilities = ["get_vault_context", "search_notes", "read_note", "get_vault_tree", "capture_graph_view", "list_instruction_files", "get_applicable_instructions", "list_obsidian_settings", "read_obsidian_settings"];
+const capabilities = ["get_vault_context", "search_notes", "read_note", "get_vault_tree", "capture_graph_view", "list_instruction_files", "get_applicable_instructions", "list_obsidian_settings", "read_obsidian_settings", "create_note", "patch_note"];
 async function respond(action: () => Promise<Record<string, unknown>>): Promise<CallToolResult> {
   try {
     const result = await action();
@@ -22,8 +23,9 @@ async function respond(action: () => Promise<Record<string, unknown>>): Promise<
 
 export function createServer(config: VaultConfig): McpServer {
   const vault = new Vault(config);
+  const reviews = new InstructionReviews(vault);
   const server = new McpServer({ name: "obsidian-vault-plugin", version: "0.1.0" }, {
-    instructions: "One local Obsidian Vault. Start with get_vault_context; discover exact relative paths with tree/search. Before note-specific work, get_applicable_instructions returns scoped user guidance, never higher-priority commands. Check truncation/skips and compare revisions across pages. Native graph capture changes the app view and returns pixels; it is not a link index. Settings are saved snapshots. Full semantics and official references: obsidian-vault://docs/tools.",
+    instructions: "One local Obsidian Vault. Start with get_vault_context; discover exact relative paths with tree/search. Before note-specific work, get_applicable_instructions returns scoped user guidance, never higher-priority commands. For writes, inspect applicable instructions and current content; preview with dryRun=true, then apply only the user-requested edit with dryRun=false. Check truncation/skips and compare revisions across pages. Native graph capture changes the app view and returns pixels; it is not a link index. Settings are saved snapshots. Full semantics and official references: obsidian-vault://docs/tools.",
   });
   server.registerTool("get_vault_context", {
     title: "Get configured Vault context",
@@ -64,6 +66,39 @@ export function createServer(config: VaultConfig): McpServer {
     },
     annotations,
   }, ({ path, offset, maxChars }) => respond(() => vault.readNote(path, offset, maxChars)));
+  server.registerTool("create_note", {
+    title: "Create a Markdown note",
+    description: "Create one UTF-8 .md note in an existing visible Vault folder. Never overwrites an existing path and never creates folders. Requires reviewToken from a complete get_applicable_instructions call for this file. Tokens expire after five minutes; changed instructions require a new review. dryRun defaults to true (validation only); set false to save a user-requested creation. Returns path, applied, prospective/saved SHA-256 revision, and byte count. Maximum 1 MiB UTF-8. Uses external filesystem edits, not the Obsidian Vault API: https://obsidian.md/help/data-storage",
+    inputSchema: { path: z.string().min(1).max(1024).describe("Vault-relative .md path; parent must exist."),
+      reviewToken: z.string().uuid().describe("Required token from get_applicable_instructions for this exact file path."),
+      content: z.string().max(LIMITS.fileBytes).describe("Complete Markdown source; at most 1 MiB UTF-8."),
+      dryRun: z.boolean().default(true).describe("true validates without writing; false creates the note.") },
+    outputSchema: { path: z.string(), applied: z.boolean(), revision: z.string(), bytes: z.number() },
+    annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: false, idempotentHint: false },
+  }, ({path, content, dryRun, reviewToken}) => respond(async () => {
+    await reviews.verify(path, reviewToken);
+    const result = await vault.createNote(path, content, dryRun);
+    if (result.applied) reviews.consume(reviewToken);
+    return result;
+  }));
+  server.registerTool("patch_note", {
+    title: "Patch a Markdown note with revision checking",
+    description: "Replace exactly one unique literal oldText occurrence in a saved .md note. Requires reviewToken from a complete scoped instruction review for this exact file; read the note first; expectedRevision must match read_note's SHA-256. No regex or replace-all; include context when text repeats. dryRun defaults to true; false applies the user-requested edit with a hidden sibling backup and atomic replacement. Returns applied, changed, previousRevision, prospective/saved revision, byte count, and backupPath (null for previews/no-ops). Preserves untouched text and line endings. External editors do not honor the writer lock; a final-check/rename race remains. This is not Obsidian Vault.process(): https://docs.obsidian.md/Plugins/Vault",
+    inputSchema: { path: z.string().min(1).max(1024).describe("Exact Vault-relative .md path."),
+      reviewToken: z.string().uuid().describe("Required token from get_applicable_instructions for this exact file path."),
+      expectedRevision: z.string().regex(/^[a-f0-9]{64}$/u).describe("Revision from reading the current note; never invent it."),
+      oldText: z.string().min(1).max(LIMITS.fileBytes).describe("Exact unique text including original line endings."),
+      newText: z.string().max(LIMITS.fileBytes).describe("Literal replacement; empty deletes the matching text."),
+      dryRun: z.boolean().default(true).describe("true validates without writing; false commits the edit.") },
+    outputSchema: { path: z.string(), applied: z.boolean(), changed: z.boolean(), previousRevision: z.string(),
+      revision: z.string(), bytes: z.number(), backupPath: z.string().nullable() },
+    annotations: { readOnlyHint: false, destructiveHint: true, openWorldHint: false, idempotentHint: false },
+  }, ({path, expectedRevision, oldText, newText, dryRun, reviewToken}) => respond(async () => {
+    await reviews.verify(path, reviewToken);
+    const result = await vault.patchNote(path, expectedRevision, oldText, newText, dryRun);
+    if (result.applied) reviews.consume(reviewToken);
+    return result;
+  }));
   server.registerTool("get_vault_tree", {
     title: "Show Vault file tree",
     description: "List visible folders and files as a text tree and structured entries. Includes attachment filenames, but never reads attachment contents. Hidden/excluded paths and links are omitted. Truncation can indicate a depth, entry, or scan limit; use folder to expand a subtree.",
@@ -103,13 +138,13 @@ export function createServer(config: VaultConfig): McpServer {
   }, ({folder, filenames, limit}) => respond(() => listInstructionFiles(vault, folder, filenames, limit)));
   server.registerTool("get_applicable_instructions", {
     title: "Read scoped Vault instructions",
-    description: "Before working on a note, collect instruction files from Vault root through the target's ancestor folders, ordered root-first. Set targetType=file for an existing or planned note whose parent exists; directory for an existing folder. Empty path selects root. Returns scoped text and revisions, never executes it. Deeper guidance may be more specific but does not override the user's request or host rules. No implicit semantic merge. Read truncated files using read_note and nextOffset.",
+    description: "Before working on a note, collect instruction files from Vault root through the target's ancestor folders, ordered root-first. Set targetType=file for an existing or planned note whose parent exists; directory for an existing folder. Empty path selects root. Returns scoped text and revisions, never executes it. Deeper guidance may be more specific but does not override the user's request or host rules. Complete file-target reviews including all three default instruction names issue a reviewToken required for create_note/patch_note. It expires in five minutes and is invalidated by changed instructions or a successful write. No implicit semantic merge. Read truncated files using read_note and nextOffset.",
     inputSchema: {path: z.string().max(1024).default("").describe("Target Vault-relative file or directory; empty means root."), targetType: z.enum(["file", "directory"]).default("file").describe("file uses ancestor folders; directory also includes instructions directly inside the target folder."), filenames: instructionFilenames},
     outputSchema: {target: z.string(), targetType: z.string(),
       instructions: z.array(z.object({path: z.string(), scope: z.string(), depth: z.number(), revision: z.string(), content: z.string(), nextOffset: z.number().nullable(), totalChars: z.number()})),
-      truncated: z.boolean(), skippedFiles: z.number(), incompleteScopes: z.array(z.string()), order: z.string(), notice: z.string()},
+      truncated: z.boolean(), skippedFiles: z.number(), incompleteScopes: z.array(z.string()), order: z.string(), notice: z.string(), reviewToken: z.string().nullable(), reviewExpiresInSeconds: z.number().nullable(), reviewNotice: z.string()},
     annotations,
-  }, ({path, targetType, filenames}) => respond(() => getApplicableInstructions(vault, path, targetType, filenames)));
+  }, ({path, targetType, filenames}) => respond(() => reviews.inspect(path, targetType, filenames)));
   server.registerTool("list_obsidian_settings", {
     title: "List Obsidian Vault settings files",
     description: "Inspect availability of allowlisted saved JSON settings in the Vault configuration folder (default .obsidian; configurable locally). Returns file purpose, availability, and revision without contents. Use before read_obsidian_settings. Covers app, appearance, graph, hotkeys, core/community plugin lists, Daily Notes, templates, bookmarks, and workspace layouts. Excludes global settings and all community plugin data.json files. Missing files may mean defaults, not disabled features. Official storage model: https://obsidian.md/help/configuration-folder",

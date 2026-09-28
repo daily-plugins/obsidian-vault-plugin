@@ -9,6 +9,7 @@ A plugin for searching and inspecting a selected local Obsidian Vault from MCP-c
 - `get_vault_context`: returns the Vault ID and currently implemented capabilities
 - `search_notes`: case-insensitive literal search across Markdown paths and contents
 - `read_note`: paginated UTF-8 Markdown reads with SHA-256 revisions
+- `create_note` and `patch_note`: preview-first note creation and revision-checked edits with backups
 - Vault-relative path validation, exclusions, and link rejection
 - Native Graph view PNG capture through the official Obsidian CLI
 - A bounded file tree, scoped instruction discovery, and allowlisted settings inspection
@@ -17,7 +18,7 @@ A plugin for searching and inspecting a selected local Obsidian Vault from MCP-c
 
 Private ChatGPT tunnel launch scripts are available: [Connect to ChatGPT](docs/chatgpt-connection.md).
 Live account connection still requires a tunnel ID, runtime key, and developer-mode access.
-Note writing, packaged MCP connection configuration, and public deployment are not implemented yet.
+Packaged MCP connection configuration and public deployment are not implemented yet.
 The manifest is a package scaffold, not a complete installable plugin.
 The server checks that the configured path is an accessible directory; it does not automatically verify that it is an Obsidian Vault.
 
@@ -66,7 +67,7 @@ File tools use Node.js filesystem APIs directly and do not require Obsidian to b
 The separate `capture_graph_view` tool invokes fixed official Obsidian CLI commands
 without a shell. It requires the desktop app and never accepts arbitrary commands or code. Only saved
 files on disk are visible; editor buffers, resolved backlinks, and plugin state
-are not available through this implementation. No tool modifies files.
+are not available through this implementation. `create_note` and `patch_note` modify saved Markdown only when `dryRun=false`.
 
 ## Using the tools
 
@@ -244,3 +245,24 @@ docs/tools.md             Agent-facing semantics and official references
 - [Secure MCP Tunnel](https://developers.openai.com/api/docs/guides/secure-mcp-tunnels)
 - [Public submission](https://developers.openai.com/plugins/deploy/submission)
 - [Obsidian Vault API](https://docs.obsidian.md/Plugins/Vault)
+
+## Creating and editing notes
+
+Use `get_applicable_instructions` before editing a target. `create_note` accepts
+`path`, `content`, `reviewToken`, and `dryRun` (default true). `patch_note` accepts `path`,
+`reviewToken`, `expectedRevision` from `read_note`, unique literal `oldText`, `newText`, and
+`dryRun` (default true). Set `dryRun:false` to apply the user's requested change.
+Creation never overwrites. Patches reject stale revisions and ambiguous matches,
+preserve untouched text, and retain a hidden sibling backup. Files are limited
+to 1 MiB UTF-8 and parent directories must exist. Settings remain read-only.
+
+These tools use filesystem APIs and cannot coordinate unsaved Obsidian buffers
+or external editors. See the [tool guide](docs/tools.md#patch_note) for concurrency
+limits, backup retention, and manual recovery. Restart the MCP/tunnel process,
+refresh its tools in your client, and use a new conversation after upgrading.
+
+Writes require a fresh `reviewToken` returned by a complete
+`get_applicable_instructions` call for the exact target file. The server checks
+that scoped AGENTS.md/CLAUDE.md/INSTRUCTIONS.md guidance is unchanged, rejects
+missing/expired reviews, and consumes the token after applying a write. This
+requires retrieval before editing; it cannot prove an agent understood the text.

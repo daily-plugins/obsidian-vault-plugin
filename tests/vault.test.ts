@@ -88,7 +88,7 @@ test("MCP stdio exposes tools, validates inputs, and returns sanitized errors", 
     await writeFile(join(f.root, ".obsidian", "graph.json"), '{"showOrphans":true,"apiKey":"secret"}');
     await client.connect(new StdioClientTransport({command: process.execPath, args: ["dist/index.js"],
       env: {OBSIDIAN_VAULT_PATH: f.root, OBSIDIAN_VAULT_ID: "test", OBSIDIAN_EXCLUDED_PATHS: '["private"]'}}));
-    assert.deepEqual((await client.listTools()).tools.map(t => t.name), ["get_vault_context", "search_notes", "read_note", "get_vault_tree", "capture_graph_view", "list_instruction_files", "get_applicable_instructions", "list_obsidian_settings", "read_obsidian_settings"]);
+    assert.deepEqual((await client.listTools()).tools.map(t => t.name), ["get_vault_context", "search_notes", "read_note", "create_note", "patch_note", "get_vault_tree", "capture_graph_view", "list_instruction_files", "get_applicable_instructions", "list_obsidian_settings", "read_obsidian_settings"]);
     const resources = await client.listResources();
     assert.ok(resources.resources.some(resource => resource.uri === "obsidian-vault://docs/tools"));
     const guide = await client.readResource({uri: "obsidian-vault://docs/tools"});
@@ -119,6 +119,20 @@ test("MCP stdio exposes tools, validates inputs, and returns sanitized errors", 
       assert.ok(!JSON.stringify(result).includes(f.temp));
       assert.ok(!JSON.stringify(result).includes("OUTSIDE SECRET"));
     }
+    const missingReview = await client.callTool({name: "create_note", arguments: {path: "notes/blocked.md", content: "no", dryRun: false}});
+    assert.equal(missingReview.isError, true);
+    const preview = await client.callTool({name: "create_note", arguments: {path: "notes/new.md", reviewToken: instructions.structuredContent?.reviewToken, content: "draft"}});
+    assert.equal(preview.structuredContent?.applied, false);
+    const created = await client.callTool({name: "create_note", arguments: {path: "notes/new.md", reviewToken: instructions.structuredContent?.reviewToken, content: "draft", dryRun: false}});
+    assert.equal(created.structuredContent?.applied, true);
+    const patchReview = await client.callTool({name: "get_applicable_instructions", arguments: {path: "notes/new.md"}});
+    const patched = await client.callTool({name: "patch_note", arguments: {path: "notes/new.md",
+      reviewToken: patchReview.structuredContent?.reviewToken, expectedRevision: created.structuredContent?.revision, oldText: "draft", newText: "final", dryRun: false}});
+    assert.equal(patched.structuredContent?.applied, true);
+    assert.equal((await f.vault.readDocument("notes/new.md")).content, "final");
+    const conflict = await client.callTool({name: "patch_note", arguments: {path: "notes/new.md",
+      reviewToken: patchReview.structuredContent?.reviewToken, expectedRevision: created.structuredContent?.revision, oldText: "final", newText: "bad", dryRun: false}});
+    assert.equal(conflict.isError, true);
     const invalid = await client.callTool({name: "search_notes", arguments: {query: "", limit: 100}});
     assert.equal(invalid.isError, true);
   } finally { await client.close(); await rm(f.temp, { recursive: true, force: true }); }

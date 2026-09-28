@@ -19,7 +19,9 @@ test("tracks case variants, ancestor scopes, revisions, and deletions without ex
     const scoped = await getApplicableInstructions(vault, "Study/English/new.md");
     assert.deepEqual(scoped.instructions.map(item => item.path), ["Agents.md", "Study/AGENTS.md", "Study/English/CLAUDE.md"]);
     assert.deepEqual(scoped.instructions.map(item => item.depth), [0, 1, 2]);
-    assert.equal(scoped.truncated, false);
+    assert.equal(scoped.truncated, true); // Matching symlinked instructions must block write reviews.
+    assert.equal(scoped.skippedFiles, 1);
+    assert.deepEqual(scoped.incompleteScopes, [""]);
     assert.equal((await getApplicableInstructions(vault, "Study", "directory", ["RULES.md"])).instructions[0]?.path, "Study/RULES.md");
     assert.equal((await getApplicableInstructions(vault)).instructions.length, 1);
     await writeFile(join(root, "Agents.md"), "Updated root guidance");

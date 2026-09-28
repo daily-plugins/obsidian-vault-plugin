@@ -43,21 +43,18 @@ export async function getApplicableInstructions(vault: Vault, path = "", targetT
   let truncated = false, skippedFiles = 0, remainingChars = 40_000, bytes = 0;
   const incompleteScopes: string[] = [];
   for (const [depth, scope] of scopes.entries()) {
-    // A shallow listing discovers case variants without assuming case-sensitive filesystems.
-    const listing = await vault.listEntries(scope, 1, 1000, true);
-    // Depth-only truncation from subfolders is expected; hitting the entry cap can hide instructions.
-    if (listing.limitReasons.some(reason => reason !== "depth") || listing.skippedEntries) { truncated = true; incompleteScopes.push(scope); }
-    skippedFiles += listing.skippedEntries;
-    const candidates = listing.entries.filter(entry => entry.type === "file" && accepted.has(entry.name.toLowerCase()));
+    let candidates: string[];
+    try { candidates = await vault.instructionPaths(scope, accepted); }
+    catch { skippedFiles++; truncated = true; incompleteScopes.push(scope); continue; }
     for (const candidate of candidates) {
       if (remainingChars < 2 || bytes >= LIMITS.searchBytes) { truncated = true; incompleteScopes.push(scope); break; }
       try {
-        const note = await vault.readDocument(candidate.path);
+        const note = await vault.readDocument(candidate);
         bytes += note.bytes;
         let end = Math.min(note.content.length, LIMITS.pageChars, remainingChars);
         if (end < note.content.length && /[\uD800-\uDBFF]/u.test(note.content[end - 1] ?? "")) end--;
         const nextOffset = end < note.content.length ? end : null;
-        instructions.push({path: candidate.path, scope, depth, revision: note.revision,
+        instructions.push({path: candidate, scope, depth, revision: note.revision,
           content: note.content.slice(0, end), nextOffset, totalChars: note.content.length});
         remainingChars -= end;
         if (nextOffset !== null) truncated = true;

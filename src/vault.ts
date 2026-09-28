@@ -1,7 +1,7 @@
 import { constants } from "node:fs";
-import { lstat, open, opendir, realpath } from "node:fs/promises";
-import { createHash } from "node:crypto";
-import { isAbsolute, join, relative, sep, win32 } from "node:path";
+import { lstat, open, opendir, realpath, link, rename, unlink } from "node:fs/promises";
+import { createHash, randomUUID } from "node:crypto";
+import { isAbsolute, join, relative, sep, win32, basename } from "node:path";
 import type { VaultConfig } from "./config.js";
 import { SETTINGS_NAMES } from "./settings-files.js";
 
@@ -62,6 +62,110 @@ export class Vault {
     return canonical;
   }
 
+  async instructionPaths(folder: string, accepted: Set<string>): Promise<string[]> {
+    const dir = await opendir(await this.resolve(folder, true));
+    const paths: string[] = [];
+    let scanned = 0;
+    for await (const entry of dir) {
+      if (++scanned > LIMITS.searchEntries) throw new VaultError("Instruction scope scan is incomplete.");
+      // Include matching links/excluded files so readDocument reports an incomplete review.
+      if (accepted.has(entry.name.toLowerCase())) paths.push(folder ? `${folder}/${entry.name}` : entry.name);
+    }
+    return paths.sort();
+  }
+
+  private validateWrite(path: string, content: string): Buffer {
+    this.validateScope(path);
+    if (!path.toLowerCase().endsWith(".md")) throw new VaultError("Only Markdown (.md) notes may be written.");
+    const bytes = Buffer.from(content, "utf8");
+    if (bytes.toString("utf8") !== content) throw new VaultError("Content contains invalid Unicode.");
+    if (bytes.length > LIMITS.fileBytes) throw new VaultError("Note exceeds the 1 MiB write limit.");
+    return bytes;
+  }
+
+  private async writeTarget(path: string) {
+    const folder = path.includes("/") ? path.slice(0, path.lastIndexOf("/")) : "";
+    const parent = await this.resolve(folder, true);
+    return { folder, parent, file: join(parent, basename(path)) };
+  }
+
+  private async writeExclusive(file: string, bytes: Buffer, mode = 0o600) {
+    const handle = await open(file, constants.O_WRONLY | constants.O_CREAT | constants.O_EXCL | constants.O_NOFOLLOW, mode);
+    try { await handle.writeFile(bytes); await handle.sync(); }
+    catch (error) { await unlink(file).catch(() => {}); throw error; }
+    finally { await handle.close(); }
+  }
+
+  async createNote(path: string, content: string, dryRun = true) {
+    const bytes = this.validateWrite(path, content);
+    const target = await this.writeTarget(path);
+    try { await lstat(target.file); throw new VaultError("Note already exists; use patch_note after reading its revision."); }
+    catch (error) { if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error; }
+    const result = { path, applied: !dryRun, revision: createHash("sha256").update(bytes).digest("hex"), bytes: bytes.length };
+    if (dryRun) return result;
+    const temp = join(target.parent, `.obsidian-vault-${randomUUID()}.tmp`);
+    await this.writeExclusive(temp, bytes);
+    try {
+      if (await this.resolve(target.folder, true) !== target.parent) throw new VaultError("Parent folder changed. Retry.");
+      // Publishing via hard link is atomic and fails if the destination already exists.
+      await link(temp, target.file);
+    } finally { await unlink(temp); }
+    return result;
+  }
+
+  async patchNote(path: string, expectedRevision: string, oldText: string, newText: string, dryRun = true) {
+    this.validateWrite(path, newText);
+    if (!/^[a-f0-9]{64}$/u.test(expectedRevision)) throw new VaultError("Provide the SHA-256 revision from read_note.");
+    if (!oldText) throw new VaultError("oldText must not be empty.");
+    const prepare = async () => {
+      const note = await this.readDocument(path);
+      if (note.revision !== expectedRevision) throw new VaultError("Revision conflict. Read the note again before editing.");
+      const offset = note.content.indexOf(oldText);
+      if (offset < 0) throw new VaultError("oldText was not found. Use exact text, including line endings.");
+      if (note.content.indexOf(oldText, offset + 1) >= 0) throw new VaultError("oldText is ambiguous. Include more surrounding text.");
+      const next = note.content.slice(0, offset) + newText + note.content.slice(offset + oldText.length);
+      const bytes = this.validateWrite(path, next);
+      return { note, bytes, changed: next !== note.content };
+    };
+    const preview = await prepare();
+    const result = { path, applied: false, changed: preview.changed, previousRevision: expectedRevision,
+      revision: createHash("sha256").update(preview.bytes).digest("hex"), bytes: preview.bytes.length,
+      backupPath: null as string | null };
+    if (dryRun || !preview.changed) return result;
+    const target = await this.writeTarget(path);
+    const lockPath = join(target.parent, `.obsidian-vault-${createHash("sha256").update(basename(path)).digest("hex")}.lock`);
+    let lock;
+    try { lock = await open(lockPath, "wx", 0o600); }
+    catch (error) {
+      if ((error as NodeJS.ErrnoException).code === "EEXIST") throw new VaultError("Another edit holds the note lock. Retry after it completes; a stale lock needs local recovery.");
+      throw error;
+    }
+    const temp = join(target.parent, `.obsidian-vault-${randomUUID()}.tmp`);
+    let tempCreated = false;
+    try {
+      const current = await prepare();
+      const original = await lstat(await this.resolve(path));
+      const backupName = `.obsidian-vault-${randomUUID()}.bak`;
+      await this.writeExclusive(join(target.parent, backupName), Buffer.from(current.note.content, "utf8"));
+      await this.writeExclusive(temp, current.bytes, original.mode & 0o777);
+      tempCreated = true;
+      // Recheck immediately before rename. External editors do not honor our lock.
+      const final = await this.readDocument(path);
+      const info = await lstat(await this.resolve(path));
+      if (final.revision !== expectedRevision || info.ino !== original.ino || info.dev !== original.dev) {
+        throw new VaultError("Revision conflict during write. Read the note again before editing.");
+      }
+      if (await this.resolve(target.folder, true) !== target.parent) throw new VaultError("Parent folder changed. Retry.");
+      await rename(temp, target.file);
+      tempCreated = false;
+      return { ...result, applied: true, backupPath: target.folder ? `${target.folder}/${backupName}` : backupName };
+    } finally {
+      if (tempCreated) await unlink(temp).catch(() => {});
+      await lock.close();
+      await unlink(lockPath);
+    }
+  }
+
   async readSettingsDocument(name: string) {
     return this.readText(`${this.config.configDir ?? ".obsidian"}/${name}`, true);
   }
@@ -94,7 +198,7 @@ export class Vault {
       }
       const bytes = buffer.subarray(0, length);
       let content: string;
-      try { content = new TextDecoder("utf-8", { fatal: true }).decode(bytes); }
+      try { content = new TextDecoder("utf-8", { fatal: true, ignoreBOM: true }).decode(bytes); }
       catch { throw new VaultError("Note must contain valid UTF-8 text."); }
       return { content, revision: createHash("sha256").update(bytes).digest("hex"), bytes: length };
     } finally { await handle.close(); }
