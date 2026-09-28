@@ -10,6 +10,9 @@ A project for searching and editing a selected local Obsidian Vault from ChatGPT
 - `search_notes`: case-insensitive literal search across Markdown paths and contents
 - `read_note`: paginated UTF-8 Markdown reads with SHA-256 revisions
 - Vault-relative path validation, exclusions, and link rejection
+- Native Graph view PNG capture through the official Obsidian CLI
+- A bounded file tree, scoped instruction discovery, and allowlisted settings inspection
+- An agent-readable guide with official references: [Tool guide](docs/tools.md)
 - A development plugin manifest
 
 Note writing, packaged MCP connection configuration, ChatGPT integration, and public deployment are not implemented yet.
@@ -202,16 +205,28 @@ sandbox against a hostile local process racing to replace parent directories.
 Keep the Vault under trusted local control; use OS isolation before supporting
 untrusted local writers or exposing a public service. Current verification is on macOS.
 
+## Agent-facing documentation
+
+Tool metadata describes purpose, inputs, results, limits, and side effects.
+The complete [tool guide](docs/tools.md) distinguishes official Obsidian behavior
+from project conventions and links primary sources. MCP clients can discover it
+under Resources as `obsidian-vault://docs/tools`.
+
 ## Project structure
 
 ```text
 .codex-plugin/plugin.json  Development package metadata
 src/config.ts             Local Vault configuration
 src/server.ts             MCP tool registration
-src/vault.ts              Bounded file reads, search, and path validation
+src/vault.ts              Bounded file reads, search, tree, and path validation
+src/graph-view.ts         Native app graph capture through the official CLI
+src/instructions.ts       Instruction discovery and ancestor scope
+src/settings.ts           Allowlisted JSON settings and redaction
+src/settings-files.ts     Supported settings file catalog
 tests/vault.test.ts        File access and MCP integration tests
 src/index.ts              Stdio entry point
 docs/architecture.md      Architecture and implementation roadmap
+docs/tools.md             Agent-facing semantics and official references
 .env.example              Example local configuration
 ```
 
