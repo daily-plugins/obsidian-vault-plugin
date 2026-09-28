@@ -23,3 +23,15 @@ inside the composition. The conversation badge overlaps its lower-right area.
 PNG files were rendered from the SVG with `@resvg/resvg-js` and visually checked.
 Keep these intentional image deliverables in Git; renderer dependencies belong
 in the ignored `.local` directory.
+
+## Simple variant
+
+- `obsidian-vault-simple.svg`: 512 × 512 vector canvas; 1,593 bytes.
+- `obsidian-vault-simple.png`: 256 × 256 RGBA PNG; 6,800 bytes.
+
+This personal-use variant follows the supplied visual reference: four flat lavender
+facets (#AA8AF5) separated by transparent gaps. No tile, chat badge, gradients,
+shadows, or checkerboard pixels are included. The underlying official facet paths
+are retained; SVG masking creates the gaps and uniform scaling adds clear space.
+Both files are below 10,000 bytes. The earlier detailed icons remain available.
+The trademark and commercial-use guidance above also applies to this variant.
