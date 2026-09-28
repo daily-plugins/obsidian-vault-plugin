@@ -33,7 +33,7 @@ export class Vault {
 
   private async resolve(path: string, directory = false, configuration = false): Promise<string> {
     if (configuration) {
-      const configDir = this.config.configDir ?? ".obsidian";
+      const configDir = this.config.configDir ?? ".vault";
       if (!/^\.[A-Za-z0-9][A-Za-z0-9._-]{0,63}$/u.test(configDir) ||
           !SETTINGS_NAMES.some(name => path === `${configDir}/${name}`)) {
         throw new VaultError("Only allowlisted Vault configuration files may be read.");
@@ -167,7 +167,7 @@ export class Vault {
   }
 
   async readSettingsDocument(name: string) {
-    return this.readText(`${this.config.configDir ?? ".obsidian"}/${name}`, true);
+    return this.readText(`${this.config.configDir ?? ".vault"}/${name}`, true);
   }
 
   async readDocument(path: string) { return this.readText(path); }

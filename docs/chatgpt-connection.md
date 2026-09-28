@@ -112,12 +112,9 @@ Start with small requests and check the displayed tool calls:
 | Search for a known phrase in my notes. | `search_notes` |
 | Read one of those search results. | `read_note` |
 | Find AGENTS.md instructions in my Vault. | `list_instruction_files` |
-| List available app settings files. | `list_obsidian_settings` |
-| Show my native host application Graph view. | `capture_graph_view` |
+| List available app settings files. | `list_settings` |
 
-Graph capture requires the desktop app and official host application CLI. It opens the
-Graph view and sends a screenshot that may include sidebars. Filesystem exclusions
-do not mask the screenshot. The [tool guide](tools.md) describes all eleven tools.
+The [tool guide](tools.md) describes all ten tools.
 
 ## Troubleshooting and lifecycle
 

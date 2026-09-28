@@ -3,12 +3,9 @@
 A plugin for accessing Obsidian or other local file repositories from MCP-compatible clients.
 
 Core tools search, read, create, and edit saved Markdown in one selected folder.
-Native graph capture and saved app-settings inspection are optional integrations
-for Obsidian; these features are not available for arbitrary folders or other apps.
-The guides call this optional integration the "host application".
-This is an independent project, not an official app integration.
-Existing `OBSIDIAN_*` environment variables, MCP tool identifiers, and the
-resource URI are retained for connection compatibility; they are not product names.
+All tools use the local filesystem; no desktop app, app CLI, or screenshot capture is required.
+Settings tools inspect allowlisted JSON files in a locally configured hidden folder.
+This is an independent project.
 
 Repository: [daily-plugins/Vault](https://github.com/daily-plugins/Vault).
 
@@ -21,7 +18,6 @@ Repository: [daily-plugins/Vault](https://github.com/daily-plugins/Vault).
 - `read_note`: paginated UTF-8 Markdown reads with SHA-256 revisions
 - `create_note` and `patch_note`: preview-first note creation and revision-checked edits with backups
 - Vault-relative path validation, exclusions, and link rejection
-- Native Graph view PNG capture through the official host application CLI
 - A bounded file tree, scoped instruction discovery, and allowlisted settings inspection
 - An agent-readable guide with official references: [Tool guide](docs/tools.md)
 - A development plugin manifest
@@ -52,7 +48,7 @@ Requires Node.js 20.20 or later.
 ```sh
 npm ci
 cp .env.example .env
-# Set OBSIDIAN_VAULT_PATH in .env to your Vault's absolute path
+# Set VAULT_PATH in .env to your Vault's absolute path
 npm run typecheck
 npm run build
 npm start
@@ -86,11 +82,10 @@ The remote command keeps the local agent running through OpenAI's official tunne
 
 ## Implementation approach
 
-File tools use Node.js filesystem APIs directly and do not require the host application to be running.
-The separate `capture_graph_view` tool invokes fixed official host application CLI commands
-without a shell. It requires the desktop app and never accepts arbitrary commands or code. Only saved
-files on disk are visible; editor buffers, resolved backlinks, and plugin state
-are not available through this implementation. `create_note` and `patch_note` modify saved Markdown only when `dryRun=false`.
+File tools use Node.js filesystem APIs directly. Only saved files on disk are visible;
+unsaved editor buffers, resolved backlinks, and plugin state are not available.
+`create_note` and `patch_note` modify saved Markdown only when `dryRun=false`.
+No shell, application CLI, or image capture tool is exposed.
 
 ## Using the tools
 
@@ -122,7 +117,7 @@ If the revision changes between pages, restart the read to avoid mixing versions
 Optionally exclude visible folders or files in `.env`:
 
 ```dotenv
-OBSIDIAN_EXCLUDED_PATHS='["Private", "Journal/personal.md"]'
+VAULT_EXCLUDED_PATHS='["Private", "Journal/personal.md"]'
 ```
 
 Restart the server after changing configuration. Exclusions apply to reads and
@@ -139,27 +134,6 @@ Visible attachment names are included, but their contents are not read. Director
 at the depth limit are not expanded. `truncated` flags any depth, entry, or scan
 limit; call again with a specific `folder` to inspect a subtree. Hidden paths,
 excluded paths, symlinks, and hard-linked files remain inaccessible.
-
-## Native host application Graph view
-
-Call `capture_graph_view` with `{}` to receive the actual host application screenshot
-as MCP image content. This is a static PNG, not a JSON link graph or an interactive
-widget. Requires the host application 1.12.7+, the CLI enabled under Settings → General, and
-the Graph view core plugin. The app must be available; the CLI may launch it.
-
-The server verifies the app's Vault path, discovers the `graph:open` command,
-opens/focuses Graph view, waits briefly for rendering, and calls the official
-`dev:screenshot` command. Temporary screenshots are deleted after reading.
-The graph remains open. Existing graph filters, colors, layout, and app theme
-are preserved; layout animation may still be settling at capture time.
-
-The screenshot covers the app, so sidebars or other visible panes may appear.
-File-tool exclusions do not filter pixels in the native app. Only request this
-tool when you intend to share the visible app view. A maximum 10 MiB PNG is accepted.
-Set `OBSIDIAN_APP_VAULT` if your app Vault name differs from its folder name;
-set `OBSIDIAN_CLI_PATH` if the executable is not on PATH.
-
-Reference: [Official host application CLI](https://obsidian.md/help/cli).
 
 ## Instruction discovery and scope
 
@@ -183,7 +157,7 @@ For a folder, use `targetType: "directory"`. Planned files are supported if thei
 parent folder exists. The tool returns root scope first, deepest scope last,
 with alphabetical ordering within each scope. It does not merge conflicting
 instructions or promote them above user/host instructions. This scoping is a
-project convention, not a native host application feature.
+project convention, not a application-specific feature.
 
 Content is capped at 20,000 characters per file and 40,000 per response. Continue
 individual files with `read_note` and the returned `nextOffset`. `truncated`,
@@ -192,18 +166,17 @@ do not infer missing instructions or deletions from incomplete results.
 
 ## Vault settings inspection
 
-Use `list_obsidian_settings` with `{}` to inspect supported settings files,
-then `read_obsidian_settings` with `{"file": "graph.json"}` to read one.
+Use `list_settings` with `{}` to inspect supported settings files,
+then `read_settings` with `{"file": "settings.json"}` to read one.
 An optional `key` selects a top-level JSON property or array index after redaction.
 
 This is a narrow exception to the hidden-file policy: only the allowlisted JSON
 files in the configured Vault settings folder can be read. `read_note` and tree
-search still cannot access hidden folders. Set `OBSIDIAN_CONFIG_DIR` if you use
-the host application's **Override config folder** feature; it defaults to `.obsidian`.
+search still cannot access hidden folders. Set `VAULT_CONFIG_DIR` to one hidden folder inside the selected root; it defaults to `.vault`.
 
-Supported files cover app, appearance, graph, hotkeys, core/community plugin
-lists, Daily Notes, templates, bookmarks, and desktop/mobile/saved workspaces.
-The tools do not expose global application data or community plugin `data.json`.
+The filename catalog includes `settings.json` and compatibility names such as
+`app.json`, `graph.json`, and `workspace.json`; no application schema is assumed.
+Nested plugin data and global application folders are inaccessible.
 Known secret-bearing keys/values, credential-bearing URLs, and absolute paths are
 redacted. Redaction is best-effort; arbitrary secrets cannot be detected reliably.
 
@@ -211,9 +184,6 @@ Files are limited to 1 MiB; nesting, collection size, long strings, and response
 size are bounded. A `truncated` result is incomplete. Settings filenames/fields
 are version-dependent compatibility details, not a stable official JSON schema.
 A missing settings file may mean defaults, and disk state may lag in-memory state.
-
-Official references: [Configuration folder](https://obsidian.md/help/configuration-folder)
-and [How the host application stores data](https://obsidian.md/help/data-storage).
 
 ## Limits and verification
 
@@ -238,9 +208,8 @@ untrusted local writers or exposing a public service. Current verification is on
 ## Agent-facing documentation
 
 Tool metadata describes purpose, inputs, results, limits, and side effects.
-The complete [tool guide](docs/tools.md) distinguishes official host application behavior
-from project conventions and links primary sources. MCP clients can discover it
-under Resources as `obsidian-vault://docs/tools`.
+The complete [tool guide](docs/tools.md) distinguishes the project's filesystem rules and instruction review protocol. MCP clients can discover it
+under Resources as `vault://docs/tools`.
 
 ## Project structure
 
@@ -249,7 +218,6 @@ under Resources as `obsidian-vault://docs/tools`.
 src/config.ts             Local Vault configuration
 src/server.ts             MCP tool registration
 src/vault.ts              Bounded file reads, search, tree, and path validation
-src/graph-view.ts         Native app graph capture through the official CLI
 src/instructions.ts       Instruction discovery and ancestor scope
 src/settings.ts           Allowlisted JSON settings and redaction
 src/settings-files.ts     Supported settings file catalog
@@ -272,7 +240,6 @@ docs/tools.md             Agent-facing semantics and official references
 - [Connect and test in ChatGPT](https://developers.openai.com/plugins/deploy/connect-chatgpt)
 - [Secure MCP Tunnel](https://developers.openai.com/api/docs/guides/secure-mcp-tunnels)
 - [Public submission](https://developers.openai.com/plugins/deploy/submission)
-- [Host application Vault API](https://docs.obsidian.md/Plugins/Vault)
 
 ## Creating and editing notes
 
@@ -294,3 +261,17 @@ Writes require a fresh `reviewToken` returned by a complete
 that scoped AGENTS.md/CLAUDE.md/INSTRUCTIONS.md guidance is unchanged, rejects
 missing/expired reviews, and consumes the token after applying a write. This
 requires retrieval before editing; it cannot prove an agent understood the text.
+
+## Upgrading to 0.2
+
+`capture_graph_view` and its CLI integration have been removed. Use `list_settings`
+and `read_settings`; the previous app-prefixed tool names are no longer registered.
+The tool guide resource is now `vault://docs/tools`. Rebuild, restart your stdio,
+HTTP or tunnel process, refresh client metadata, and start a new session.
+
+New local configuration uses `VAULT_PATH`, `VAULT_ID`, `VAULT_EXCLUDED_PATHS`, and
+`VAULT_CONFIG_DIR` (default `.vault`). The previous `OBSIDIAN_*` configuration keys
+remain fallback aliases. A legacy-only root configuration retains its previous
+settings-folder default. Set the settings folder explicitly when migrating an
+existing configuration. Existing hidden backup/lock filenames are retained so
+older processes do not bypass the same writer lock. Old graph CLI variables are unused.

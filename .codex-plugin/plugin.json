@@ -1,6 +1,6 @@
 {
   "name": "vault",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "A plugin for accessing Obsidian or other local file repositories through MCP.",
   "author": {
     "name": "Local developer"
@@ -8,7 +8,7 @@
   "interface": {
     "displayName": "Vault",
     "shortDescription": "Connect a selected local file repository.",
-    "longDescription": "Access Obsidian or other local file repositories through MCP. Search, read, create, and edit saved Markdown in one selected folder. Native graph capture and app settings are optional app-specific integrations. Packaged connection wiring is planned.",
+    "longDescription": "Access Obsidian or other local file repositories through MCP. Search, read, create, and edit saved Markdown in one selected folder. Inspect allowlisted JSON settings and scoped instructions without a desktop app. Packaged connection wiring is planned.",
     "developerName": "Local developer",
     "category": "Productivity",
     "capabilities": [],

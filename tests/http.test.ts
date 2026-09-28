@@ -35,7 +35,7 @@ test('HTTP authenticates, rejects unexpected origins/hosts, and preserves per-se
     assert.equal((await fetch(url, {method: 'POST', headers: {...headers, 'Content-Type':'application/json'}, body:'{broken'})).status, 400);
     await client.connect(transport);
     await other.connect(otherTransport);
-    assert.equal((await client.listTools()).tools.length, 11);
+    assert.equal((await client.listTools()).tools.length, 10);
     const review = await client.callTool({name: 'get_applicable_instructions', arguments: {path:'new.md'}});
     const args = {path:'new.md', content:'# HTTP', dryRun:false, reviewToken:review.structuredContent?.reviewToken};
     assert.equal((await other.callTool({name:'create_note', arguments:args})).isError, true);

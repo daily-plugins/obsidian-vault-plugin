@@ -1,13 +1,14 @@
-// Local compatibility allowlist, not a promise of a stable Obsidian JSON schema.
+// Filename compatibility catalog only; no application-specific schema is assumed.
 export const SETTINGS_FILES = {
+  "settings.json": "Repository settings",
   "app.json": "Vault editor, file, and link preferences",
   "appearance.json": "Theme, font, and appearance preferences",
-  "graph.json": "Saved Graph view filters, groups, display, and forces",
+  "graph.json": "Saved graph configuration",
   "hotkeys.json": "Custom command keyboard shortcuts",
-  "core-plugins.json": "Enabled core plugin configuration",
-  "community-plugins.json": "Enabled community plugin IDs; not plugin credentials or data",
-  "daily-notes.json": "Daily Notes folder, date format, and template preferences",
-  "templates.json": "Templates core plugin preferences",
+  "core-plugins.json": "Core plugin configuration",
+  "community-plugins.json": "Community plugin list; not plugin credentials or data",
+  "daily-notes.json": "Daily note preferences",
+  "templates.json": "Template preferences",
   "bookmarks.json": "Saved bookmarks",
   "workspace.json": "Desktop workspace layout and open views",
   "workspace-mobile.json": "Mobile workspace layout",

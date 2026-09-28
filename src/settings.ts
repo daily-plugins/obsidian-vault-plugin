@@ -35,7 +35,7 @@ export function redactSettings(value: unknown) {
   return {data, redactedValues, omittedValues};
 }
 
-export async function listObsidianSettings(vault: Vault) {
+export async function listSettings(vault: Vault) {
   const files = [];
   for (const file of SETTINGS_NAMES) {
     try {
@@ -50,8 +50,8 @@ export async function listObsidianSettings(vault: Vault) {
   return {files, source: "Saved Vault configuration only. Global settings, plugin data.json, and in-memory changes are not included."};
 }
 
-export async function readObsidianSettings(vault: Vault, file: SettingsFile, key?: string) {
-  if (!SETTINGS_NAMES.includes(file)) throw new VaultError("Unsupported configuration file. Call list_obsidian_settings first.");
+export async function readSettings(vault: Vault, file: SettingsFile, key?: string) {
+  if (!SETTINGS_NAMES.includes(file)) throw new VaultError("Unsupported configuration file. Call list_settings first.");
   const note = await vault.readSettingsDocument(file);
   let parsed: unknown;
   try { parsed = JSON.parse(note.content); } catch { throw new VaultError("Configuration file is not valid JSON."); }
@@ -65,5 +65,5 @@ export async function readObsidianSettings(vault: Vault, file: SettingsFile, key
   if (JSON.stringify(data).length > 65_536) throw new VaultError("Configuration response is too large. Request a top-level key or array index using key.");
   return {file, key: key ?? null, revision: note.revision, data,
     redactedValues: redacted.redactedValues, truncated: redacted.omittedValues > 0,
-    notice: "Saved JSON snapshot; internal filenames and fields can vary by Obsidian version. Missing files do not imply disabled features. Sensitive-key/value redaction is best-effort, not a credential scanner."};
+    notice: "Saved JSON snapshot; internal filenames and fields can vary by the file producer. Missing files do not imply disabled features. Sensitive-key/value redaction is best-effort, not a credential scanner."};
 }

@@ -84,10 +84,9 @@ Inspector URL(`localhost:6274`)을 MCP 엔드포인트로 입력하지 마세요
 | 노트에서 알고 있는 문구를 검색해줘. | `search_notes` |
 | 해당 검색 결과 중 하나를 읽어줘. | `read_note` |
 | Vault에서 AGENTS.md 지침을 찾아줘. | `list_instruction_files` |
-| 조회 가능한 호스트 앱 설정 파일 목록을 보여줘. | `list_obsidian_settings` |
-| 실제 호스트 앱 그래프 뷰를 보여줘. | `capture_graph_view` |
+| 조회 가능한 앱 설정 파일 목록을 보여줘. | `list_settings` |
 
-그래프 캡처에는 데스크톱 앱과 공식 호스트 앱 CLI가 필요합니다. 그래프 뷰를 열고 사이드바가 포함될 수 있는 스크린샷을 전송합니다. 파일시스템 제외 설정은 스크린샷을 가리지 않습니다. [도구 가이드](tools.md)에 11개 도구를 모두 설명했습니다.
+[도구 가이드](tools.md)에 10개 도구를 모두 설명했습니다.
 
 ## 문제 해결과 수명 주기
 

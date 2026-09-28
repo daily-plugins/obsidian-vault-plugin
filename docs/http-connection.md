@@ -3,7 +3,7 @@
 ## When to choose HTTP
 
 Use Streamable HTTP for an MCP client that connects to a URL and can send a
-Bearer token. The default endpoint is `http://127.0.0.1:3000/mcp`. All eleven
+Bearer token. The default endpoint is `http://127.0.0.1:3000/mcp`. All ten
 Vault tools and mandatory instruction reviews are available. HTTP is a transport
 option; it does not guarantee that a client will display MCP image content.
 
@@ -62,7 +62,7 @@ Header configuration differs by client. Use the same values in MCP Inspector's
 Streamable HTTP connection and authentication settings. List tools, call
 `get_vault_context`, then test a small tree query. `/healthz` accepts authenticated
 GET requests and returns a minimal liveness response; it does not validate the
-the host application GUI or end-to-end tool execution.
+an application GUI or end-to-end tool execution.
 
 Use an MCP-aware client that preserves `Mcp-Session-Id` between calls. Each
 session has its own instruction review tokens. At most 32 sessions are retained;
