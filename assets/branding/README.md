@@ -1,37 +1,19 @@
 # Plugin icon assets
 
-An unofficial personal-use icon for this Obsidian Vault chat integration.
-The composition pairs the official purple Obsidian symbol with an original
-ivory conversation badge on a midnight rounded tile. The corners are transparent.
-
-- `obsidian-vault-icon-under10kb.png`: 256 × 256 indexed-color PNG, 6,202 bytes, for uploads limited to 10 KB. Derived from the PNG using a 256-color palette without dithering; retains transparent corners.
-- `obsidian-vault-icon.svg`: self-contained vector master, 1024 × 1024 viewBox; 6,204 bytes, also below 10 KB.
-- `obsidian-vault-icon.png`: 1024 × 1024 RGBA PNG for upload.
-- `obsidian-vault-icon-256.png`: 256 × 256 RGBA PNG for smaller displays.
-- `obsidian-original.svg`: unmodified downloaded source asset.
-
-Source: https://obsidian.md/images/obsidian-logo-gradient.svg
-
-Brand guidelines: https://obsidian.md/brand (retrieved September 28, 2026).
-Obsidian's name, logo, and app icon are trademarks. The guidelines permit personal
-app-icon customization and request contacting Obsidian for commercial use.
-This composition does not imply endorsement by Obsidian or OpenAI; it contains
-no OpenAI logo. Review brand permission before commercial distribution.
-
-The source symbol's paths and colors are retained, uniformly scaled and placed
-inside the composition. The conversation badge overlaps its lower-right area.
-PNG files were rendered from the SVG with `@resvg/resvg-js` and visually checked.
-Keep these intentional image deliverables in Git; renderer dependencies belong
-in the ignored `.local` directory.
-
-## Simple variant
+The simple lavender icon is the only brand variant for Obsidian Vault Plugin.
 
 - `obsidian-vault-simple.svg`: 512 × 512 vector canvas; 1,593 bytes.
 - `obsidian-vault-simple.png`: 256 × 256 RGBA PNG; 6,800 bytes.
 
-This personal-use variant follows the supplied visual reference: four flat lavender
-facets (#AA8AF5) separated by transparent gaps. No tile, chat badge, gradients,
-shadows, or checkerboard pixels are included. The underlying official facet paths
-are retained; SVG masking creates the gaps and uniform scaling adds clear space.
-Both files are below 10,000 bytes. The earlier detailed icons remain available.
-The trademark and commercial-use guidance above also applies to this variant.
+Four flat lavender facets (#AA8AF5) are separated by transparent gaps. There is
+no background tile, chat badge, gradient, shadow, or checkerboard pattern. Both
+files are below 10,000 bytes. PNG was rendered from SVG with `@resvg/resvg-js`.
+
+The facet paths originate from the official asset:
+https://obsidian.md/images/obsidian-logo-gradient.svg
+
+Brand guidelines: https://obsidian.md/brand (reviewed September 28, 2026).
+Obsidian's name, logo, and app icon are trademarks. This is an unofficial
+personal-use customization; it does not imply endorsement by Obsidian or OpenAI.
+The guidelines permit personal app-icon customization and request contacting
+Obsidian for commercial use. Review permission before commercial distribution.
