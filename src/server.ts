@@ -4,9 +4,10 @@ import { z } from "zod";
 import type { VaultConfig } from "./config.js";
 import { LIMITS, safeError, Vault } from "./vault.js";
 import { captureGraphView } from "./graph-view.js";
+import { DEFAULT_INSTRUCTION_NAMES, listInstructionFiles, getApplicableInstructions } from "./instructions.js";
 
 const annotations = { readOnlyHint: true, destructiveHint: false, openWorldHint: false };
-const capabilities = ["get_vault_context", "search_notes", "read_note", "get_vault_tree", "capture_graph_view"];
+const capabilities = ["get_vault_context", "search_notes", "read_note", "get_vault_tree", "capture_graph_view", "list_instruction_files", "get_applicable_instructions"];
 async function respond(action: () => Promise<Record<string, unknown>>): Promise<CallToolResult> {
   try {
     const result = await action();
@@ -69,7 +70,7 @@ export function createServer(config: VaultConfig): McpServer {
       maxEntries: z.number().int().min(1).max(1000).default(200),
     },
     outputSchema: {
-      folder: z.string(), tree: z.string(), truncated: z.boolean(), skippedEntries: z.number(),
+      folder: z.string(), tree: z.string(), truncated: z.boolean(), skippedEntries: z.number(), limitReasons: z.array(z.string()),
       entries: z.array(z.object({path: z.string(), name: z.string(), type: z.enum(["file", "directory"]), depth: z.number()})),
     },
     annotations,
@@ -86,5 +87,25 @@ export function createServer(config: VaultConfig): McpServer {
         {type: "image" as const, data: screenshot.data, mimeType: screenshot.mimeType}]};
     } catch (error) { return {isError: true, content: [{type: "text" as const, text: safeError(error)}]}; }
   });
+  const instructionFilenames = z.array(z.string().min(1).max(128)).min(1).max(10).default(DEFAULT_INSTRUCTION_NAMES)
+    .describe("Case-insensitive Markdown basenames to track. Defaults to AGENTS.md, CLAUDE.md, INSTRUCTIONS.md; these are project conventions, not Obsidian core features.");
+  server.registerTool("list_instruction_files", {
+    title: "Discover Vault instruction files",
+    description: "Find named instruction Markdown files across visible Vault folders. Returns each relative path, directory scope, content revision, and a snapshot revision for change comparison. Includes Agents.md case variants. Does not execute or apply instructions. Compare revisions only across complete scans with identical arguments; truncated or skipped scans cannot prove deletion.",
+    inputSchema: {folder: z.string().max(1024).default(""), filenames: instructionFilenames,
+      limit: z.number().int().min(1).max(200).default(100)},
+    outputSchema: {files: z.array(z.object({path: z.string(), scope: z.string(), revision: z.string(), totalChars: z.number()})),
+      snapshotRevision: z.string(), truncated: z.boolean(), skippedFiles: z.number(), notice: z.string()},
+    annotations,
+  }, ({folder, filenames, limit}) => respond(() => listInstructionFiles(vault, folder, filenames, limit)));
+  server.registerTool("get_applicable_instructions", {
+    title: "Read scoped Vault instructions",
+    description: "Before working on a note, collect instruction files from Vault root through the target's ancestor folders, ordered root-first. Set targetType=file for an existing or planned note whose parent exists; directory for an existing folder. Empty path selects root. Returns scoped text and revisions, never executes it. Deeper guidance may be more specific but does not override the user's request or host rules. No implicit semantic merge. Read truncated files using read_note and nextOffset.",
+    inputSchema: {path: z.string().max(1024).default(""), targetType: z.enum(["file", "directory"]).default("file"), filenames: instructionFilenames},
+    outputSchema: {target: z.string(), targetType: z.string(),
+      instructions: z.array(z.object({path: z.string(), scope: z.string(), depth: z.number(), revision: z.string(), content: z.string(), nextOffset: z.number().nullable(), totalChars: z.number()})),
+      truncated: z.boolean(), skippedFiles: z.number(), incompleteScopes: z.array(z.string()), order: z.string(), notice: z.string()},
+    annotations,
+  }, ({path, targetType, filenames}) => respond(() => getApplicableInstructions(vault, path, targetType, filenames)));
   return server;
 }

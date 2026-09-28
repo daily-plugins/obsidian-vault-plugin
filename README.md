@@ -128,6 +128,35 @@ set `OBSIDIAN_CLI_PATH` if the executable is not on PATH.
 
 Reference: [Official Obsidian CLI](https://obsidian.md/help/cli).
 
+## Instruction discovery and scope
+
+`list_instruction_files` finds `AGENTS.md`, `CLAUDE.md`, and `INSTRUCTIONS.md`
+(case-insensitive, so `Agents.md` is included). Pass `filenames` to track other
+Markdown basenames. Results include directory scope and SHA-256 revisions.
+Compare `snapshotRevision` and per-file revisions between complete scans to
+track changes; there is no persistent watcher or automatic execution.
+
+```json
+{"folder": "", "filenames": ["AGENTS.md", "CLAUDE.md", "INSTRUCTIONS.md"], "limit": 100}
+```
+
+`get_applicable_instructions` returns root-to-parent guidance for a target note:
+
+```json
+{"path": "Study/English/new.md", "targetType": "file"}
+```
+
+For a folder, use `targetType: "directory"`. Planned files are supported if their
+parent folder exists. The tool returns root scope first, deepest scope last,
+with alphabetical ordering within each scope. It does not merge conflicting
+instructions or promote them above user/host instructions. This scoping is a
+project convention, not a native Obsidian feature.
+
+Content is capped at 20,000 characters per file and 40,000 per response. Continue
+individual files with `read_note` and the returned `nextOffset`. `truncated`,
+`skippedFiles`, and `incompleteScopes` indicate incomplete discovery/content;
+do not infer missing instructions or deletions from incomplete results.
+
 ## Limits and verification
 
 - Only regular UTF-8 `.md` files, including uppercase `.MD`, are supported.

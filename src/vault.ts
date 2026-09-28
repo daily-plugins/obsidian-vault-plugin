@@ -21,6 +21,15 @@ export function validateRelativePath(path: string, allowRoot = false): string {
 export class Vault {
   constructor(private readonly config: VaultConfig) {}
 
+  validateScope(path: string): void {
+    validateRelativePath(path, true);
+    if (this.config.excludedPaths.some(excluded => path === excluded || path.startsWith(`${excluded}/`))) {
+      throw new VaultError("This path is excluded from Vault access.");
+    }
+  }
+
+  async assertDirectory(path: string): Promise<void> { await this.resolve(path, true); }
+
   private async resolve(path: string, directory = false): Promise<string> {
     validateRelativePath(path, directory);
     if (this.config.excludedPaths.some(excluded => path === excluded || path.startsWith(`${excluded}/`))) {
@@ -46,7 +55,7 @@ export class Vault {
     return canonical;
   }
 
-  private async read(path: string) {
+  async readDocument(path: string) {
     if (!path.toLowerCase().endsWith(".md")) throw new VaultError("Only Markdown (.md) notes are supported.");
     const file = await this.resolve(path);
     const handle = await open(file, constants.O_RDONLY | constants.O_NOFOLLOW | constants.O_NONBLOCK);
@@ -79,7 +88,7 @@ export class Vault {
   }
 
   async readNote(path: string, offset = 0, maxChars: number = LIMITS.pageChars) {
-    const note = await this.read(path);
+    const note = await this.readDocument(path);
     if (!Number.isSafeInteger(offset) || offset < 0 || offset > note.content.length) throw new VaultError("Offset is outside the note.");
     if (!Number.isInteger(maxChars) || maxChars < 1 || maxChars > LIMITS.pageChars) throw new VaultError("Invalid page size.");
     // Offsets use JavaScript UTF-16 code units. Avoid splitting surrogate pairs.
@@ -97,13 +106,14 @@ export class Vault {
     const entries: { path: string; name: string; type: "file" | "directory"; depth: number }[] = [];
     const queue = [{ path: folder, depth: 0 }];
     let visitedEntries = 0, skippedEntries = 0, truncated = false;
+    const limitReasons = new Set<string>();
     outer: while (queue.length) {
       const directory = queue.shift()!;
       let dir;
       try { dir = await opendir(await this.resolve(directory.path, true)); }
       catch { skippedEntries++; continue; }
       for await (const entry of dir) {
-        if (++visitedEntries > LIMITS.searchEntries) { truncated = true; break outer; }
+        if (++visitedEntries > LIMITS.searchEntries) { truncated = true; limitReasons.add("scan"); break outer; }
         if (entry.name.startsWith(".") || entry.name === "node_modules" || entry.isSymbolicLink()) continue;
         const path = directory.path ? `${directory.path}/${entry.name}` : entry.name;
         if (this.config.excludedPaths.some(excluded => path === excluded || path.startsWith(`${excluded}/`))) continue;
@@ -114,13 +124,13 @@ export class Vault {
         entries.push({ path, name: entry.name, type: entry.isDirectory() ? "directory" : "file", depth });
         if (entry.isDirectory()) {
           if (depth < maxDepth) queue.push({ path, depth });
-          else truncated = true;
+          else { truncated = true; limitReasons.add("depth"); }
         }
-        if (entries.length >= maxEntries) { truncated = true; break outer; }
+        if (entries.length >= maxEntries) { truncated = true; limitReasons.add("entries"); break outer; }
       }
     }
     entries.sort((a, b) => a.path < b.path ? -1 : a.path > b.path ? 1 : 0);
-    return { folder, entries, skippedEntries, truncated };
+    return { folder, entries, skippedEntries, truncated, limitReasons: [...limitReasons] };
   }
 
   async getTree(folder = "", maxDepth = 4, maxEntries = 200) {
@@ -170,7 +180,7 @@ export class Vault {
         if (scannedFiles >= LIMITS.searchFiles || readBytes >= LIMITS.searchBytes) { truncated = true; break outer; }
         scannedFiles++;
         let note;
-        try { note = await this.read(path); } catch { skippedFiles++; continue; }
+        try { note = await this.readDocument(path); } catch { skippedFiles++; continue; }
         readBytes += note.bytes;
         const lines = note.content.split(/\r?\n/u);
         const lineIndex = lines.findIndex(matches);
