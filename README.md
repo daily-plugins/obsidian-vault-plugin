@@ -1,6 +1,16 @@
-# Obsidian Vault Plugin
+# Vault
 
-A plugin for searching and inspecting a selected local Obsidian Vault from MCP-compatible clients.
+A plugin for accessing Obsidian or other local file repositories from MCP-compatible clients.
+
+Core tools search, read, create, and edit saved Markdown in one selected folder.
+Native graph capture and saved app-settings inspection are optional integrations
+for Obsidian; these features are not available for arbitrary folders or other apps.
+The guides call this optional integration the "host application".
+This is an independent project, not an official app integration.
+Existing `OBSIDIAN_*` environment variables, MCP tool identifiers, and the
+resource URI are retained for connection compatibility; they are not product names.
+
+Repository: [daily-plugins/Vault](https://github.com/daily-plugins/Vault).
 
 ## Current status
 
@@ -11,7 +21,7 @@ A plugin for searching and inspecting a selected local Obsidian Vault from MCP-c
 - `read_note`: paginated UTF-8 Markdown reads with SHA-256 revisions
 - `create_note` and `patch_note`: preview-first note creation and revision-checked edits with backups
 - Vault-relative path validation, exclusions, and link rejection
-- Native Graph view PNG capture through the official Obsidian CLI
+- Native Graph view PNG capture through the official host application CLI
 - A bounded file tree, scoped instruction discovery, and allowlisted settings inspection
 - An agent-readable guide with official references: [Tool guide](docs/tools.md)
 - A development plugin manifest
@@ -20,7 +30,7 @@ Private ChatGPT tunnel launch scripts are available: [Connect to ChatGPT](docs/c
 Live account connection still requires a tunnel ID, runtime key, and developer-mode access.
 Packaged MCP connection configuration and public deployment are not implemented yet.
 The manifest is a package scaffold, not a complete installable plugin.
-The server checks that the configured path is an accessible directory; it does not automatically verify that it is an Obsidian Vault.
+The server checks that the configured path is an accessible directory; it does not require an app-specific Vault marker.
 
 ## Choose a connection
 
@@ -76,8 +86,8 @@ The remote command keeps the local agent running through OpenAI's official tunne
 
 ## Implementation approach
 
-File tools use Node.js filesystem APIs directly and do not require Obsidian to be running.
-The separate `capture_graph_view` tool invokes fixed official Obsidian CLI commands
+File tools use Node.js filesystem APIs directly and do not require the host application to be running.
+The separate `capture_graph_view` tool invokes fixed official host application CLI commands
 without a shell. It requires the desktop app and never accepts arbitrary commands or code. Only saved
 files on disk are visible; editor buffers, resolved backlinks, and plugin state
 are not available through this implementation. `create_note` and `patch_note` modify saved Markdown only when `dryRun=false`.
@@ -130,11 +140,11 @@ at the depth limit are not expanded. `truncated` flags any depth, entry, or scan
 limit; call again with a specific `folder` to inspect a subtree. Hidden paths,
 excluded paths, symlinks, and hard-linked files remain inaccessible.
 
-## Native Obsidian Graph view
+## Native host application Graph view
 
-Call `capture_graph_view` with `{}` to receive the real Obsidian app screenshot
+Call `capture_graph_view` with `{}` to receive the actual host application screenshot
 as MCP image content. This is a static PNG, not a JSON link graph or an interactive
-widget. Requires Obsidian 1.12.7+, the CLI enabled under Settings → General, and
+widget. Requires the host application 1.12.7+, the CLI enabled under Settings → General, and
 the Graph view core plugin. The app must be available; the CLI may launch it.
 
 The server verifies the app's Vault path, discovers the `graph:open` command,
@@ -149,7 +159,7 @@ tool when you intend to share the visible app view. A maximum 10 MiB PNG is acce
 Set `OBSIDIAN_APP_VAULT` if your app Vault name differs from its folder name;
 set `OBSIDIAN_CLI_PATH` if the executable is not on PATH.
 
-Reference: [Official Obsidian CLI](https://obsidian.md/help/cli).
+Reference: [Official host application CLI](https://obsidian.md/help/cli).
 
 ## Instruction discovery and scope
 
@@ -173,7 +183,7 @@ For a folder, use `targetType: "directory"`. Planned files are supported if thei
 parent folder exists. The tool returns root scope first, deepest scope last,
 with alphabetical ordering within each scope. It does not merge conflicting
 instructions or promote them above user/host instructions. This scoping is a
-project convention, not a native Obsidian feature.
+project convention, not a native host application feature.
 
 Content is capped at 20,000 characters per file and 40,000 per response. Continue
 individual files with `read_note` and the returned `nextOffset`. `truncated`,
@@ -189,7 +199,7 @@ An optional `key` selects a top-level JSON property or array index after redacti
 This is a narrow exception to the hidden-file policy: only the allowlisted JSON
 files in the configured Vault settings folder can be read. `read_note` and tree
 search still cannot access hidden folders. Set `OBSIDIAN_CONFIG_DIR` if you use
-Obsidian's **Override config folder** feature; it defaults to `.obsidian`.
+the host application's **Override config folder** feature; it defaults to `.obsidian`.
 
 Supported files cover app, appearance, graph, hotkeys, core/community plugin
 lists, Daily Notes, templates, bookmarks, and desktop/mobile/saved workspaces.
@@ -203,7 +213,7 @@ are version-dependent compatibility details, not a stable official JSON schema.
 A missing settings file may mean defaults, and disk state may lag in-memory state.
 
 Official references: [Configuration folder](https://obsidian.md/help/configuration-folder)
-and [How Obsidian stores data](https://obsidian.md/help/data-storage).
+and [How the host application stores data](https://obsidian.md/help/data-storage).
 
 ## Limits and verification
 
@@ -228,7 +238,7 @@ untrusted local writers or exposing a public service. Current verification is on
 ## Agent-facing documentation
 
 Tool metadata describes purpose, inputs, results, limits, and side effects.
-The complete [tool guide](docs/tools.md) distinguishes official Obsidian behavior
+The complete [tool guide](docs/tools.md) distinguishes official host application behavior
 from project conventions and links primary sources. MCP clients can discover it
 under Resources as `obsidian-vault://docs/tools`.
 
@@ -262,7 +272,7 @@ docs/tools.md             Agent-facing semantics and official references
 - [Connect and test in ChatGPT](https://developers.openai.com/plugins/deploy/connect-chatgpt)
 - [Secure MCP Tunnel](https://developers.openai.com/api/docs/guides/secure-mcp-tunnels)
 - [Public submission](https://developers.openai.com/plugins/deploy/submission)
-- [Obsidian Vault API](https://docs.obsidian.md/Plugins/Vault)
+- [Host application Vault API](https://docs.obsidian.md/Plugins/Vault)
 
 ## Creating and editing notes
 
@@ -274,7 +284,7 @@ Creation never overwrites. Patches reject stale revisions and ambiguous matches,
 preserve untouched text, and retain a hidden sibling backup. Files are limited
 to 1 MiB UTF-8 and parent directories must exist. Settings remain read-only.
 
-These tools use filesystem APIs and cannot coordinate unsaved Obsidian buffers
+These tools use filesystem APIs and cannot coordinate unsaved editor buffers
 or external editors. See the [tool guide](docs/tools.md#patch_note) for concurrency
 limits, backup retention, and manual recovery. Restart the MCP/tunnel process,
 refresh its tools in your client, and use a new conversation after upgrading.

@@ -1,24 +1,26 @@
-# Obsidian tool guide for agents
+# Vault tool guide for agents
 
 Official documentation reviewed: 2026-09-28. This guide is also served as the MCP
 resource `obsidian-vault://docs/tools`. Tool names and limits below belong to this
-project; they are not official Obsidian API names.
+project; they are not official host application API names.
 
-## Obsidian concepts and authoritative sources
+The optional host application integration is identified in the [project introduction](../README.md). Core Markdown tools also work with ordinary local folders. App-specific graph and settings behavior does not apply to other repositories.
+
+## Local repository and host application concepts
 
 | Concept | Official behavior | Source |
 | --- | --- | --- |
 | Vault | A local folder containing Markdown notes and subfolders. Files may be managed externally. | [Data storage](https://obsidian.md/help/data-storage) |
-| Internal links | Obsidian supports wikilinks, Markdown links, embeds, heading links, and block references. A note link is distinct from a filesystem path. | [Internal links](https://obsidian.md/help/links) |
+| Internal links | The host application supports wikilinks, Markdown links, embeds, heading links, and block references. A note link is distinct from a filesystem path. | [Internal links](https://obsidian.md/help/links) |
 | Graph view | A core plugin visualizes relationships; filters and display/force settings affect the visible graph. | [Graph view](https://obsidian.md/help/plugins/graph) |
-| Metadata cache | Obsidian maintains metadata that powers views, including Graph view. | [Data storage](https://obsidian.md/help/data-storage) |
+| Metadata cache | The host application maintains metadata that powers views, including Graph view. | [Data storage](https://obsidian.md/help/data-storage) |
 | Configuration folder | Per-Vault settings live in `.obsidian` by default. A user can override the folder. | [Configuration folder](https://obsidian.md/help/configuration-folder) |
 | Global settings | Global application settings live outside the Vault and are distinct from per-Vault preferences. | [Data storage](https://obsidian.md/help/data-storage) |
-| Native automation | Official CLI commands can target a Vault, execute app commands, and capture screenshots. | [Obsidian CLI](https://obsidian.md/help/cli) |
+| Native automation | Official CLI commands can target a Vault, execute app commands, and capture screenshots. | [Host application CLI](https://obsidian.md/help/cli) |
 
 `AGENTS.md`, other instruction filenames, ancestor scoping, revision hashes,
 allowlisted JSON filenames, redaction rules, and response limits are **project
-conventions**. Do not attribute those semantics to Obsidian itself. Obsidian's
+conventions**. Do not attribute those semantics to the host application itself. The host application's
 help explains settings storage but does not promise stable individual JSON keys.
 
 ## Select the right tool
@@ -31,7 +33,7 @@ help explains settings storage but does not promise stable individual JSON keys.
 | Create a note | `create_note` | Filesystem | Writes a new note when dryRun=false |
 | Edit a note | `patch_note` | Filesystem | Replaces one unique text match, creates hidden backup when applied |
 | Inspect folders and filenames as a tree | `get_vault_tree` | Filesystem | None |
-| See the actual Obsidian graph image | `capture_graph_view` | Official Obsidian CLI | Opens/focuses Graph view; temporarily writes then removes a PNG |
+| See the actual native graph image | `capture_graph_view` | Official host application CLI | Opens/focuses Graph view; temporarily writes then removes a PNG |
 | Discover instruction files and compare revisions | `list_instruction_files` | Filesystem | None |
 | Read guidance scoped to a note or folder | `get_applicable_instructions` | Filesystem | None |
 | Discover saved settings files | `list_obsidian_settings` | Allowlisted configuration files | None |
@@ -60,25 +62,25 @@ errors make a response incomplete.
 
 File tools exclude hidden path segments, `node_modules`, configured exclusions,
 symlinks, and hard-linked files. File access uses Node.js, not shell commands or
-the Obsidian metadata cache. Only saved files are visible; unsaved editor content
+the host application metadata cache. Only saved files are visible; unsaved editor content
 and plugin-computed values are not available.
 
 Successful data tools return structured JSON and an equivalent text payload.
 Tool failures set `isError`; ordinary filesystem failures are sanitized.
-`revision` is a SHA-256 hash of the bytes read, not an Obsidian version-history ID.
+`revision` is a SHA-256 hash of the bytes read, not an app version-history ID.
 
 ### get_vault_context
 
 Input: `{}`. Returns `vaultId`, `capabilities`, `excludedPaths`, `maxFileBytes`, and
 `maxPageChars`. It does not enumerate notes or disclose the absolute Vault root.
-Use this at the start of a session; it does not assert that the Obsidian app is open.
+Use this at the start of a session; it does not assert that the host application is open.
 
 ### search_notes
 
 Example: `{"query":"OPIC","folder":"Study","limit":20}`.
 Searches paths and raw note text using a literal, case-insensitive,
 Unicode-normalized substring. Frontmatter and tags are ordinary searchable text.
-This is **not Obsidian's search query language**, regex, semantic search, or a
+This is **not the host application's search query language**, regex, semantic search, or a
 backlink query. For example, `path:Study` is searched literally.
 
 Returns one result per matching note: `path`, `revision`, `match` (`path` or
@@ -106,7 +108,7 @@ Returns a text `tree`, structured `entries` (`path`, `name`, `type`, `depth`),
 folder. Limits are at most 20 levels and 1,000 returned entries. Reasons can be
 `depth`, `entries`, or `scan`. Re-query a subtree to expand it. Visible attachment
 filenames are included without reading attachment contents. This is a filesystem
-tree, not Obsidian's open-tab/workspace tree.
+tree, not the host application's open-tab/workspace tree.
 
 ### capture_graph_view
 
@@ -115,7 +117,7 @@ real native Graph view, not a recreated diagram or an interactive embedded app.
 The CLI integration targets the configured Vault and verifies its canonical path
 before discovering and running `graph:open`, then `dev:screenshot`.
 
-Requires Obsidian 1.12.7+, enabled CLI, and enabled Graph view core plugin. The CLI
+Requires the host application 1.12.7+, enabled CLI, and enabled Graph view core plugin. The CLI
 requires the app and may launch it. Local settings `OBSIDIAN_CLI_PATH` and
 `OBSIDIAN_APP_VAULT` override executable lookup and Vault name/ID. Inputs cannot
 supply commands, shell fragments, JavaScript, or output paths.
@@ -227,9 +229,9 @@ and inspect/copy the returned backup over the intended note. Recovery is manual;
 no restore/delete tool is provided. A process crash can leave a hidden `.lock` or
 `.tmp` file. Remove a stale lock locally only after confirming no writer is active.
 
-These are external filesystem edits. Obsidian documents automatic refresh for
+These are external filesystem edits. The host application documents automatic refresh for
 external note changes: [Data storage](https://obsidian.md/help/data-storage).
-Our lock only coordinates this plugin's writers. It does not lock Obsidian,
+Our lock only coordinates this plugin's writers. It does not lock the host application,
 sync clients, or other editors; a race remains between the final check and rename,
 and unsaved editor buffers can subsequently overwrite a change. This is not the
 same guarantee as the in-app [Vault.process API](https://docs.obsidian.md/Plugins/Vault).

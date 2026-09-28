@@ -62,7 +62,7 @@ Header configuration differs by client. Use the same values in MCP Inspector's
 Streamable HTTP connection and authentication settings. List tools, call
 `get_vault_context`, then test a small tree query. `/healthz` accepts authenticated
 GET requests and returns a minimal liveness response; it does not validate the
-Obsidian GUI or end-to-end tool execution.
+the host application GUI or end-to-end tool execution.
 
 Use an MCP-aware client that preserves `Mcp-Session-Id` between calls. Each
 session has its own instruction review tokens. At most 32 sessions are retained;

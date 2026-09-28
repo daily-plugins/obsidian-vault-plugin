@@ -15,7 +15,7 @@ async function main() {
     endpoint.server.once('error', reject);
     endpoint.server.listen(port, host, resolve);
   });
-  console.error(`Obsidian Vault Plugin HTTP listening at ${host}:${port}/mcp (Bearer authentication required)`);
+  console.error(`Vault HTTP listening at ${host}:${port}/mcp (Bearer authentication required)`);
   let stopping = false;
   for (const signal of ['SIGINT', 'SIGTERM']) process.on(signal, () => {
     if (stopping) return;

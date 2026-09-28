@@ -92,8 +92,8 @@ Following the official [connection guide](https://developers.openai.com/plugins/
 
 1. Keep `npm run remote` running with a healthy tunnel connection.
 2. Open [ChatGPT Plugins](https://chatgpt.com/plugins) and select the plus button.
-3. Use a name such as **Obsidian Vault** and a description such as
-   **Search and inspect my selected local Obsidian Vault.**
+3. Use a name such as **Vault** and a description such as
+   **Search and inspect my selected local Vault.**
 4. Choose **Connection → Tunnel**, then select your tunnel or enter its ID.
 5. Create the connection and review the discovered tools.
 6. Start a new chat and enable the connection from the tools menu.
@@ -112,10 +112,10 @@ Start with small requests and check the displayed tool calls:
 | Search for a known phrase in my notes. | `search_notes` |
 | Read one of those search results. | `read_note` |
 | Find AGENTS.md instructions in my Vault. | `list_instruction_files` |
-| List available Obsidian settings files. | `list_obsidian_settings` |
-| Show my native Obsidian Graph view. | `capture_graph_view` |
+| List available app settings files. | `list_obsidian_settings` |
+| Show my native host application Graph view. | `capture_graph_view` |
 
-Graph capture requires the desktop app and official Obsidian CLI. It opens the
+Graph capture requires the desktop app and official host application CLI. It opens the
 Graph view and sends a screenshot that may include sidebars. Filesystem exclusions
 do not mask the screenshot. The [tool guide](tools.md) describes all eleven tools.
 

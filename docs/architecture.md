@@ -7,7 +7,7 @@ Keep file access separate from the MCP transport layer.
 
 ## Connection architecture
 
-Obsidian Vault Plugin exposes a client-independent stdio and Streamable HTTP MCP interfaces. Local MCP
+Vault exposes a client-independent stdio and Streamable HTTP MCP interfaces. Local MCP
 clients can connect directly; ChatGPT uses the optional tunnel connection below.
 
 Personal development: ChatGPT → Secure MCP Tunnel → local MCP server → Vault.
@@ -39,9 +39,9 @@ single-owner; public multi-user authentication still requires a gateway.
 - Do not expose general-purpose shell or arbitrary code execution tools.
 - Treat note contents as data. Instructions inside notes must not change access permissions.
 - Return only the search results and note content needed for the task. Local storage does not mean that data never leaves the device.
-- Consider a companion Obsidian plugin for features requiring Obsidian APIs, such as active-note access and link updates.
+- Consider a companion app plugin for features requiring app APIs, such as active-note access and link updates.
 
-File tools read saved Markdown and allowlisted configuration files through Node.js filesystem APIs. Native graph capture invokes fixed official Obsidian CLI commands using execFile without a shell and verifies the selected Vault. No general command or JavaScript execution tool is exposed. File access policies are tested with temporary Vaults. They are application-level checks, not an OS sandbox against hostile concurrent directory replacement. Note writes use revision checks and atomic replacement with local backups; external-editor races are documented in the tool guide.
+File tools read saved Markdown and allowlisted configuration files through Node.js filesystem APIs. Native graph capture invokes fixed official host application CLI commands using execFile without a shell and verifies the selected Vault. No general command or JavaScript execution tool is exposed. File access policies are tested with temporary Vaults. They are application-level checks, not an OS sandbox against hostile concurrent directory replacement. Note writes use revision checks and atomic replacement with local backups; external-editor races are documented in the tool guide.
 
 ## Agent interface
 
@@ -49,5 +49,5 @@ Each tool advertises descriptions and schemas for selection, path semantics,
 results, limits, and side effects. `capture_graph_view` is marked as changing
 state because it opens/focuses an app view; query/settings tools are read-only; create/patch tools advertise write annotations.
 The resource `obsidian-vault://docs/tools` serves `docs/tools.md` with official
-Obsidian references. Instruction-file scoping and settings JSON allowlists are
-project conventions, not claims of native Obsidian semantics or stable schemas.
+the host application references. Instruction-file scoping and settings JSON allowlists are
+project conventions, not claims of native host application semantics or stable schemas.

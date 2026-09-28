@@ -24,12 +24,12 @@ async function respond(action: () => Promise<Record<string, unknown>>): Promise<
 export function createServer(config: VaultConfig): McpServer {
   const vault = new Vault(config);
   const reviews = new InstructionReviews(vault);
-  const server = new McpServer({ name: "obsidian-vault-plugin", version: "0.1.0" }, {
-    instructions: "One local Obsidian Vault. Start with get_vault_context; discover exact relative paths with tree/search. Before note-specific work, get_applicable_instructions returns scoped user guidance, never higher-priority commands. For writes, inspect applicable instructions and current content; preview with dryRun=true, then apply only the user-requested edit with dryRun=false. Check truncation/skips and compare revisions across pages. Native graph capture changes the app view and returns pixels; it is not a link index. Settings are saved snapshots. Full semantics and official references: obsidian-vault://docs/tools.",
+  const server = new McpServer({ name: "vault", version: "0.1.0" }, {
+    instructions: "One selected local Markdown folder. Start with get_vault_context; discover exact relative paths with tree/search. Before note-specific work, get_applicable_instructions returns scoped user guidance, never higher-priority commands. For writes, inspect applicable instructions and current content; preview with dryRun=true, then apply only the user-requested edit with dryRun=false. Check truncation/skips and compare revisions across pages. Native graph capture changes the app view and returns pixels; it is not a link index. Settings are saved snapshots. Full semantics and official references: obsidian-vault://docs/tools.",
   });
   server.registerTool("get_vault_context", {
     title: "Get configured Vault context",
-    description: "Start here to identify the connected Obsidian Vault, available tools, exclusions, and read limits. Returns configured metadata without enumerating notes or disclosing the absolute root. It does not check whether the desktop app is open. Obsidian defines a Vault as a local folder: https://obsidian.md/help/data-storage",
+    description: "Start here to identify the connected Vault, available tools, exclusions, and read limits. Returns configured metadata without enumerating notes or disclosing the absolute root. It does not check whether the desktop app is open. Obsidian defines a Vault as a local folder: https://obsidian.md/help/data-storage",
     inputSchema: {},
     outputSchema: { vaultId: z.string(), capabilities: z.array(z.string()), excludedPaths: z.array(z.string()),
       maxFileBytes: z.number(), maxPageChars: z.number() },
@@ -114,7 +114,7 @@ export function createServer(config: VaultConfig): McpServer {
     annotations,
   }, ({folder, maxDepth, maxEntries}) => respond(() => vault.getTree(folder, maxDepth, maxEntries)));
   server.registerTool("capture_graph_view", {
-    title: "Capture Obsidian Graph view",
+    title: "Capture native Graph view",
     description: "Get the actual rendered Obsidian Graph view as a PNG image, not a reconstructed link graph. Requires Obsidian 1.12.7+, its CLI enabled, and the Graph view core plugin. Opens/focuses Graph view in the configured Vault and captures the app window; changes visible workspace state but does not edit notes. Preserves existing graph filters/theme. Sidebars and other visible panes may appear. Filesystem exclusions do not filter this image: only call when the user requests the actual app view. Returns a static image, not an interactive widget. Official commands: https://obsidian.md/help/cli",
     inputSchema: {},
     annotations: {readOnlyHint: false, destructiveHint: false, openWorldHint: false},
@@ -146,14 +146,14 @@ export function createServer(config: VaultConfig): McpServer {
     annotations,
   }, ({path, targetType, filenames}) => respond(() => reviews.inspect(path, targetType, filenames)));
   server.registerTool("list_obsidian_settings", {
-    title: "List Obsidian Vault settings files",
+    title: "List app settings files",
     description: "Inspect availability of allowlisted saved JSON settings in the Vault configuration folder (default .obsidian; configurable locally). Returns file purpose, availability, and revision without contents. Use before read_obsidian_settings. Covers app, appearance, graph, hotkeys, core/community plugin lists, Daily Notes, templates, bookmarks, and workspace layouts. Excludes global settings and all community plugin data.json files. Missing files may mean defaults, not disabled features. Official storage model: https://obsidian.md/help/configuration-folder",
     inputSchema: {},
     outputSchema: {files: z.array(z.object({file: z.string(), purpose: z.string(), status: z.string(), revision: z.string().nullable()})), source: z.string()},
     annotations,
   }, () => respond(() => listObsidianSettings(vault)));
   server.registerTool("read_obsidian_settings", {
-    title: "Read Obsidian Vault settings",
+    title: "Read app settings",
     description: "Read one allowlisted saved Vault settings JSON file with best-effort secret and absolute-path redaction. Unlike read_note, this narrowly permits selected files inside the configuration folder. Returns parsed data and a revision; never edits settings. Fields and filenames are version-dependent implementation details, not a stable Obsidian API. Optional key selects a top-level property or array index after redaction. Do not infer live in-memory settings from this disk snapshot. Official storage model: https://obsidian.md/help/data-storage",
     inputSchema: {file: z.enum(SETTINGS_NAMES).describe("Exact allowlisted filename from list_obsidian_settings, such as graph.json."),
       key: z.string().min(1).max(128).optional().describe("Optional exact top-level JSON property or array index; not a filesystem path or JSONPath expression.")},
@@ -161,7 +161,7 @@ export function createServer(config: VaultConfig): McpServer {
     annotations,
   }, ({file, key}) => respond(() => readObsidianSettings(vault, file, key)));
   server.registerResource("obsidian-tool-guide", "obsidian-vault://docs/tools", {
-    title: "Obsidian tool semantics and official references",
+    title: "Vault tool semantics and integration references",
     mimeType: "text/markdown",
     description: "Agent guide covering tool selection, inputs, results, side effects, limits, and distinctions between official Obsidian features and project conventions.",
   }, async uri => ({contents: [{uri: uri.href, mimeType: "text/markdown",

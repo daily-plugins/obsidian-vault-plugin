@@ -66,7 +66,7 @@ npm run remote
 
 1. `npm run remote`를 실행하고 터널이 정상 연결된 상태로 유지합니다.
 2. [ChatGPT Plugins](https://chatgpt.com/plugins)를 열고 더하기 버튼을 선택합니다.
-3. 이름은 **Obsidian Vault**, 설명은 **선택한 로컬 Obsidian Vault를 검색하고 조회합니다.** 등으로 입력합니다.
+3. 이름은 **Vault**, 설명은 **선택한 로컬 Vault를 검색하고 조회합니다.** 등으로 입력합니다.
 4. **Connection → Tunnel**을 선택하고 터널을 선택하거나 ID를 입력합니다.
 5. 연결을 생성하고 검색된 도구를 확인합니다.
 6. 새 대화를 시작하고 도구 메뉴에서 해당 연결을 활성화합니다.
@@ -84,10 +84,10 @@ Inspector URL(`localhost:6274`)을 MCP 엔드포인트로 입력하지 마세요
 | 노트에서 알고 있는 문구를 검색해줘. | `search_notes` |
 | 해당 검색 결과 중 하나를 읽어줘. | `read_note` |
 | Vault에서 AGENTS.md 지침을 찾아줘. | `list_instruction_files` |
-| 조회 가능한 Obsidian 설정 파일 목록을 보여줘. | `list_obsidian_settings` |
-| 실제 Obsidian 그래프 뷰를 보여줘. | `capture_graph_view` |
+| 조회 가능한 호스트 앱 설정 파일 목록을 보여줘. | `list_obsidian_settings` |
+| 실제 호스트 앱 그래프 뷰를 보여줘. | `capture_graph_view` |
 
-그래프 캡처에는 데스크톱 앱과 공식 Obsidian CLI가 필요합니다. 그래프 뷰를 열고 사이드바가 포함될 수 있는 스크린샷을 전송합니다. 파일시스템 제외 설정은 스크린샷을 가리지 않습니다. [도구 가이드](tools.md)에 11개 도구를 모두 설명했습니다.
+그래프 캡처에는 데스크톱 앱과 공식 호스트 앱 CLI가 필요합니다. 그래프 뷰를 열고 사이드바가 포함될 수 있는 스크린샷을 전송합니다. 파일시스템 제외 설정은 스크린샷을 가리지 않습니다. [도구 가이드](tools.md)에 11개 도구를 모두 설명했습니다.
 
 ## 문제 해결과 수명 주기
 
