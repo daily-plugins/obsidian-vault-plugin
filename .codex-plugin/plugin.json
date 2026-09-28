@@ -8,7 +8,7 @@
   "interface": {
     "displayName": "Obsidian Vault",
     "shortDescription": "Connect a selected local Obsidian Vault.",
-    "longDescription": "Development scaffold for a Vault-scoped MCP integration. Connection wiring and note tools are planned.",
+    "longDescription": "Development scaffold for a Vault-scoped MCP integration. Read-only note search and reading are implemented. Packaged connection wiring is planned.",
     "developerName": "Local developer",
     "category": "Productivity",
     "capabilities": [],

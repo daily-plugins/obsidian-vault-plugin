@@ -1,35 +1,140 @@
 # Obsidian ChatGPT Plugin
 
-A local, single-Vault MCP integration for ChatGPT.
+A project for searching and editing a selected local Obsidian Vault from ChatGPT.
+
+## Current status
+
+- A stdio MCP server built with TypeScript and the MCP SDK
+- Single-Vault configuration through environment variables, with directory validation
+- `get_vault_context`: returns the Vault ID and currently implemented capabilities
+- `search_notes`: case-insensitive literal search across Markdown paths and contents
+- `read_note`: paginated UTF-8 Markdown reads with SHA-256 revisions
+- Vault-relative path validation, exclusions, and link rejection
+- A development plugin manifest
+
+Note writing, packaged MCP connection configuration, ChatGPT integration, and public deployment are not implemented yet.
+The manifest is a package scaffold, not a complete installable plugin.
+The server checks that the configured path is an accessible directory; it does not automatically verify that it is an Obsidian Vault.
 
 ## Getting started
 
-Requires Node.js 20.20 or later. Run commands from the project root.
+Requires Node.js 20.20 or later.
 
 ```sh
 npm ci
 cp .env.example .env
-# Set OBSIDIAN_VAULT_PATH in .env to your Vault's absolute path.
+# Set OBSIDIAN_VAULT_PATH in .env to your Vault's absolute path
 npm run typecheck
 npm run build
 npm start
 ```
 
-The stdio server waits for MCP client requests. It does not open an HTTP port.
-Use `npm run dev` to run the TypeScript source directly.
+Use `npm run dev` for development. Run all commands from the project root.
+The stdio server waits for requests from an MCP client; it does not open a web page or an HTTP port.
+Standard output is reserved for the MCP protocol. Send diagnostic logs to standard error.
 
-## Local inspection
+To connect through the local MCP Inspector:
 
 ```sh
+npm run build
 npx @modelcontextprotocol/inspector node --env-file=.env dist/index.js
 ```
 
-Open the full terminal URL containing `MCP_PROXY_AUTH_TOKEN`, or enter the
-current session token under Configuration → Proxy Session Token in Inspector.
-This is a local Inspector token, not an OpenAI API key. Keep it private.
+Open the full Inspector URL printed in the terminal, including its
+`MCP_PROXY_AUTH_TOKEN` query parameter. Opening only `http://localhost:6274`
+may leave the browser unauthenticated. If you see a connection error mentioning
+the proxy session token, expand **Configuration** in Inspector and paste the
+current terminal's **Session token** into **Proxy Session Token**, then connect
+again. This is the local Inspector token, not an OpenAI API key. Keep it private
+and use the new token after restarting Inspector.
 
-Call `get_vault_context` without arguments to verify the configured Vault ID.
-The initial scaffold does not read or modify notes. ChatGPT connection wiring
-and public deployment are not implemented yet.
+Keep `.env` and actual Vault contents out of Git. The current server does not require an OpenAI API key.
+Manage the runtime key needed for a future Secure MCP Tunnel connection separately.
 
-Keep `.env` and actual Vault contents out of Git.
+## Implementation approach
+
+The server uses Node.js filesystem APIs directly. It does not run shell commands
+or call the Obsidian plugin API. Obsidian does not need to be running. Only saved
+files on disk are visible; editor buffers, resolved backlinks, and plugin state
+are not available through this implementation. No tool modifies files.
+
+## Using the tools
+
+After rebuilding, disconnect and reconnect Inspector, then select **Tools → List Tools**.
+An already-running server process does not automatically load rebuilt code.
+
+Search with `search_notes`:
+
+```json
+{"query": "OPIC", "folder": "", "limit": 20}
+```
+
+`folder` is an optional Vault-relative directory. Search is literal and
+case-insensitive, with Unicode normalization. Tags and frontmatter are searched
+as raw text. Each result includes a relative `path`, one matching line/snippet,
+and a `revision`. Results follow filesystem traversal order, not relevance.
+`line` is 1-based for content matches; it is null for path-only matches.
+
+Read a returned path with `read_note` (replace the example with a real result):
+
+```json
+{"path": "Study/English.md", "offset": 0, "maxChars": 20000}
+```
+
+Pass the returned `nextOffset` to read the next page until it is null. Offsets
+count UTF-16 code units, so use the returned value instead of calculating one.
+If the revision changes between pages, restart the read to avoid mixing versions.
+
+Optionally exclude visible folders or files in `.env`:
+
+```dotenv
+OBSIDIAN_EXCLUDED_PATHS='["Private", "Journal/personal.md"]'
+```
+
+Restart the server after changing configuration. Exclusions apply to reads and
+searches. Hidden path segments (including `.obsidian`, `.git`, and `.trash`),
+`node_modules`, symbolic links, and hard-linked notes are always denied.
+Use `/` separators and exact paths returned by search; absolute paths, `..`,
+and `.` segments are rejected.
+
+## Limits and verification
+
+- Only regular UTF-8 `.md` files, including uppercase `.MD`, are supported.
+- Files larger than 1 MiB are rejected; read pages contain at most 20,000 UTF-16 code units.
+- Search returns up to 50 results (20 by default), scans up to 2,000 notes and
+  10,000 directory entries, and stops after approximately 20 MiB of note content.
+- `truncated: true` means a result or scan limit stopped the search; it does not
+  guarantee that another match exists. Narrow the folder or query and retry.
+- `skippedFiles` counts unreadable/rejected notes or directories. Intentionally
+  filtered hidden/excluded paths and symlink entries are not counted.
+- Filesystem errors are sanitized so tool responses do not disclose absolute paths.
+
+Run `npm run typecheck` and `npm test`. Tests use temporary fixture Vaults,
+including out-of-Vault links; they do not read or modify your personal notes.
+
+Path checks and no-follow opens protect ordinary local use. This is not an OS
+sandbox against a hostile local process racing to replace parent directories.
+Keep the Vault under trusted local control; use OS isolation before supporting
+untrusted local writers or exposing a public service. Current verification is on macOS.
+
+## Project structure
+
+```text
+.codex-plugin/plugin.json  Development package metadata
+src/config.ts             Local Vault configuration
+src/server.ts             MCP tool registration
+src/vault.ts              Bounded file reads, search, and path validation
+tests/vault.test.ts        File access and MCP integration tests
+src/index.ts              Stdio entry point
+docs/architecture.md      Architecture and implementation roadmap
+.env.example              Example local configuration
+```
+
+## Official documentation
+
+- [Build an MCP server](https://developers.openai.com/plugins/build/mcp-server)
+- [Package your plugin](https://developers.openai.com/plugins/build/plugins)
+- [Connect and test in ChatGPT](https://developers.openai.com/plugins/deploy/connect-chatgpt)
+- [Secure MCP Tunnel](https://developers.openai.com/api/docs/guides/secure-mcp-tunnels)
+- [Public submission](https://developers.openai.com/plugins/deploy/submission)
+- [Obsidian Vault API](https://docs.obsidian.md/Plugins/Vault)
