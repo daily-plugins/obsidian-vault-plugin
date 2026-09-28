@@ -278,8 +278,9 @@ The tool guide resource is now `vault://docs/tools`. Rebuild, restart your stdio
 HTTP or tunnel process, refresh client metadata, and start a new session.
 
 New local configuration uses `VAULT_PATH`, `VAULT_ID`, `VAULT_EXCLUDED_PATHS`, and
-`VAULT_CONFIG_DIR` (default `.vault`). The previous `OBSIDIAN_*` configuration keys
-remain fallback aliases. A legacy-only root configuration retains its previous
+`VAULT_CONFIG_DIR` (default `.vault`). Previous configuration keys remain fallback aliases. A legacy-only root configuration retains its previous
 settings-folder default. Set the settings folder explicitly when migrating an
 existing configuration. Existing hidden backup/lock filenames are retained so
 older processes do not bypass the same writer lock. Old graph CLI variables are unused.
+
+HTTP and tunnel configuration use `VAULT_HTTP_*` and `VAULT_TUNNEL_*`. Legacy aliases remain accepted; new names take precedence. The default tunnel profile is `vault`. Keep an existing profile name or initialize the new name with `npm run tunnel:init`. Never commit local `.env` files.

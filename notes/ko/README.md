@@ -196,4 +196,6 @@ docs/tools.md             Agent-facing semantics and official references
 
 `capture_graph_view`와 CLI 연동을 제거했습니다. 설정 조회에는 `list_settings`, `read_settings`를 사용합니다. 기존 앱 이름이 포함된 도구는 더 이상 등록하지 않습니다. 도구 가이드 리소스는 `vault://docs/tools`입니다. 재빌드 후 stdio·HTTP·터널 프로세스를 재시작하고 클라이언트 메타데이터를 갱신한 뒤 새 세션을 시작하세요.
 
-새 로컬 설정은 `VAULT_PATH`, `VAULT_ID`, `VAULT_EXCLUDED_PATHS`, `VAULT_CONFIG_DIR`(기본 `.vault`)를 사용합니다. 기존 `OBSIDIAN_*` 설정 키는 대체값으로 계속 읽습니다. 이전 루트 설정만 사용하는 경우 설정 폴더의 기존 기본값을 유지합니다. 기존 설정을 이전할 때는 설정 폴더를 명시하세요. 숨김 백업·잠금 파일 이름은 이전 프로세스와 같은 쓰기 잠금을 사용하도록 유지합니다. 기존 그래프 CLI 변수는 사용하지 않습니다.
+새 로컬 설정은 `VAULT_PATH`, `VAULT_ID`, `VAULT_EXCLUDED_PATHS`, `VAULT_CONFIG_DIR`(기본 `.vault`)를 사용합니다. 이전 설정 키는 대체값으로 계속 읽습니다. 이전 루트 설정만 사용하는 경우 설정 폴더의 기존 기본값을 유지합니다. 기존 설정을 이전할 때는 설정 폴더를 명시하세요. 숨김 백업·잠금 파일 이름은 이전 프로세스와 같은 쓰기 잠금을 사용하도록 유지합니다. 기존 그래프 CLI 변수는 사용하지 않습니다.
+
+HTTP와 터널 설정도 `VAULT_HTTP_*`, `VAULT_TUNNEL_*`을 사용합니다. 이전 별칭도 인식하며 새 이름이 우선합니다. 터널 프로필 기본값은 `vault`입니다. 기존 프로필 이름을 유지하거나 새 이름으로 `npm run tunnel:init`을 실행하세요. `.env` 파일은 저장소에 올리지 않습니다.

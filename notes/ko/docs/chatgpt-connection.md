@@ -38,9 +38,9 @@ chmod 600 .env.tunnel
 예제 파일은 최초 설정 때만 복사하고 기존 `.env.tunnel`은 유지하세요. 로컬에서 편집합니다.
 
 ```dotenv
-OBSIDIAN_TUNNEL_ID=tunnel_REPLACE_WITH_YOUR_ID
+VAULT_TUNNEL_ID=tunnel_REPLACE_WITH_YOUR_ID
 CONTROL_PLANE_API_KEY=REPLACE_WITH_YOUR_RUNTIME_KEY
-OBSIDIAN_TUNNEL_PROFILE=obsidian-vault
+VAULT_TUNNEL_PROFILE=vault
 # TUNNEL_CLIENT_PATH=/absolute/path/to/tunnel-client
 ```
 

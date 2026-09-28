@@ -19,11 +19,11 @@ openssl rand -hex 32
 복사는 최초 설정 시에만 수행하세요. 생성된 값을 `.env.http`에 넣습니다.
 
 ```dotenv
-OBSIDIAN_HTTP_TOKEN=PASTE_GENERATED_TOKEN_HERE
-OBSIDIAN_HTTP_HOST=127.0.0.1
-OBSIDIAN_HTTP_PORT=3000
-OBSIDIAN_HTTP_ALLOWED_HOSTS=127.0.0.1:3000,localhost:3000
-OBSIDIAN_HTTP_ALLOWED_ORIGINS=
+VAULT_HTTP_TOKEN=PASTE_GENERATED_TOKEN_HERE
+VAULT_HTTP_HOST=127.0.0.1
+VAULT_HTTP_PORT=3000
+VAULT_HTTP_ALLOWED_HOSTS=127.0.0.1:3000,localhost:3000
+VAULT_HTTP_ALLOWED_ORIGINS=
 ```
 
 토큰은 공백 없이 최소 32자여야 합니다. 로컬에서 정하는 HTTP 인증 정보이며 OpenAI 런타임 API 키가 아닙니다. 절대 커밋하지 마세요. 실행기는 `.env` 다음 `.env.http`를 읽으며 셸 환경 변수가 우선합니다.
@@ -44,7 +44,7 @@ MCP 클라이언트를 다음과 같이 설정합니다.
 ```text
 Transport: Streamable HTTP
 URL: http://127.0.0.1:3000/mcp
-Authorization: Bearer <OBSIDIAN_HTTP_TOKEN>
+Authorization: Bearer <VAULT_HTTP_TOKEN>
 ```
 
 헤더 설정 방식은 클라이언트마다 다릅니다. MCP Inspector의 Streamable HTTP 연결 및 인증 설정에도 같은 값을 사용하세요. 도구 목록을 불러오고 `get_vault_context`를 호출한 뒤 작은 트리 조회로 확인합니다. `/healthz`는 인증된 GET 요청을 받아 최소한의 실행 상태를 반환합니다. GUI나 전체 도구 실행을 검증하지는 않습니다.

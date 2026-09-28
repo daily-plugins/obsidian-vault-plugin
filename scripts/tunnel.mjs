@@ -20,8 +20,8 @@ async function main() {
   } catch (error) {
     if (error.code !== 'ENOENT') throw new Error('Cannot read .env.tunnel.');
   }
-  const profile = process.env.OBSIDIAN_TUNNEL_PROFILE || 'obsidian-vault';
-  if (!/^[a-zA-Z0-9_-]+$/.test(profile)) throw new Error('Invalid OBSIDIAN_TUNNEL_PROFILE.');
+  const profile = process.env.VAULT_TUNNEL_PROFILE ?? process.env.OBSIDIAN_TUNNEL_PROFILE ?? 'vault';
+  if (!/^[a-zA-Z0-9_-]+$/.test(profile)) throw new Error('Invalid VAULT_TUNNEL_PROFILE.');
   if (!process.env.CONTROL_PLANE_API_KEY?.trim()) {
     throw new Error('Set CONTROL_PLANE_API_KEY in .env.tunnel or the environment. See docs/chatgpt-connection.md.');
   }
@@ -31,9 +31,9 @@ async function main() {
   }
   let args;
   if (action === 'init') {
-    const id = process.env.OBSIDIAN_TUNNEL_ID;
+    const id = process.env.VAULT_TUNNEL_ID ?? process.env.OBSIDIAN_TUNNEL_ID;
     if (!id || !/^tunnel_[a-zA-Z0-9]+$/.test(id)) {
-      throw new Error('Set OBSIDIAN_TUNNEL_ID to the tunnel ID from Platform settings.');
+      throw new Error('Set VAULT_TUNNEL_ID to the tunnel ID from Platform settings.');
     }
     // tunnel-client parses a command string. Quote each POSIX word, including paths with spaces.
     const quote = (value) => `'${value.replaceAll("'", "'\\''")}'`;

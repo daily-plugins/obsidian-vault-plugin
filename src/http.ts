@@ -23,7 +23,7 @@ async function readBody(req: IncomingMessage) {
 }
 
 export function createHttpEndpoint(config: VaultConfig, options: HttpOptions) {
-  if (options.token.length < 32 || /\s/u.test(options.token)) throw new Error('OBSIDIAN_HTTP_TOKEN must contain at least 32 non-whitespace characters.');
+  if (options.token.length < 32 || /\s/u.test(options.token)) throw new Error('VAULT_HTTP_TOKEN must contain at least 32 non-whitespace characters.');
   if (!options.allowedHosts.length) throw new Error('At least one HTTP Host must be allowed.');
   type Session = {mcp: ReturnType<typeof createServer>; transport: StreamableHTTPServerTransport; touched: number; active: number};
   const sessions = new Map<string, Session>();
@@ -41,7 +41,7 @@ export function createHttpEndpoint(config: VaultConfig, options: HttpOptions) {
     if (!req.headers.host || !options.allowedHosts.includes(req.headers.host.toLowerCase())) return respond(res, 403, 'Host not allowed');
     if (req.headers.origin && !options.allowedOrigins.includes(req.headers.origin)) return respond(res, 403, 'Origin not allowed');
     if (!timingSafeEqual(digest(req.headers.authorization ?? ''), digest(`Bearer ${options.token}`))) {
-      res.setHeader('WWW-Authenticate', 'Bearer realm="obsidian-vault"');
+      res.setHeader('WWW-Authenticate', 'Bearer realm="vault"');
       return respond(res, 401, 'Authentication required');
     }
     res.setHeader('Cache-Control', 'no-store');

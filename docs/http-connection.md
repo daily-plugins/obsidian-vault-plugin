@@ -22,11 +22,11 @@ openssl rand -hex 32
 Copy only during first setup. Paste the generated value into `.env.http`:
 
 ```dotenv
-OBSIDIAN_HTTP_TOKEN=PASTE_GENERATED_TOKEN_HERE
-OBSIDIAN_HTTP_HOST=127.0.0.1
-OBSIDIAN_HTTP_PORT=3000
-OBSIDIAN_HTTP_ALLOWED_HOSTS=127.0.0.1:3000,localhost:3000
-OBSIDIAN_HTTP_ALLOWED_ORIGINS=
+VAULT_HTTP_TOKEN=PASTE_GENERATED_TOKEN_HERE
+VAULT_HTTP_HOST=127.0.0.1
+VAULT_HTTP_PORT=3000
+VAULT_HTTP_ALLOWED_HOSTS=127.0.0.1:3000,localhost:3000
+VAULT_HTTP_ALLOWED_ORIGINS=
 ```
 
 The token must contain at least 32 non-whitespace characters. This is a locally
@@ -54,7 +54,7 @@ Configure your MCP client with:
 ```text
 Transport: Streamable HTTP
 URL: http://127.0.0.1:3000/mcp
-Authorization: Bearer <OBSIDIAN_HTTP_TOKEN>
+Authorization: Bearer <VAULT_HTTP_TOKEN>
 ```
 
 Header configuration differs by client. Use the same values in MCP Inspector's

@@ -26,9 +26,9 @@ chmod 600 .env.tunnel
 Copy only on first setup. Edit locally:
 
 ```dotenv
-OBSIDIAN_TUNNEL_ID=tunnel_REPLACE_WITH_YOUR_ID
+VAULT_TUNNEL_ID=tunnel_REPLACE_WITH_YOUR_ID
 CONTROL_PLANE_API_KEY=REPLACE_WITH_RUNTIME_KEY
-OBSIDIAN_TUNNEL_PROFILE=obsidian-vault
+VAULT_TUNNEL_PROFILE=vault
 TUNNEL_CLIENT_PATH=/absolute/path/to/tunnel-client
 ```
 
