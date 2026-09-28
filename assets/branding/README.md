@@ -4,7 +4,8 @@ An unofficial personal-use icon for this Obsidian Vault chat integration.
 The composition pairs the official purple Obsidian symbol with an original
 ivory conversation badge on a midnight rounded tile. The corners are transparent.
 
-- `obsidian-vault-icon.svg`: self-contained vector master, 1024 × 1024 viewBox.
+- `obsidian-vault-icon-under10kb.png`: 256 × 256 indexed-color PNG, 6,202 bytes, for uploads limited to 10 KB. Derived from the PNG using a 256-color palette without dithering; retains transparent corners.
+- `obsidian-vault-icon.svg`: self-contained vector master, 1024 × 1024 viewBox; 6,204 bytes, also below 10 KB.
 - `obsidian-vault-icon.png`: 1024 × 1024 RGBA PNG for upload.
 - `obsidian-vault-icon-256.png`: 256 × 256 RGBA PNG for smaller displays.
 - `obsidian-original.svg`: unmodified downloaded source asset.
