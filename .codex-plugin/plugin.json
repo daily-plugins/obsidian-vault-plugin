@@ -1,12 +1,12 @@
 {
-  "name": "obsidian-chatgpt-plugin",
+  "name": "obsidian-vault-plugin",
   "version": "0.1.0",
-  "description": "Local single-vault Obsidian integration for ChatGPT. Development scaffold.",
+  "description": "Local single-vault Obsidian plugin for MCP-compatible clients. Development scaffold.",
   "author": {
     "name": "Local developer"
   },
   "interface": {
-    "displayName": "Obsidian Vault",
+    "displayName": "Obsidian Vault Plugin",
     "shortDescription": "Connect a selected local Obsidian Vault.",
     "longDescription": "Development scaffold for a Vault-scoped MCP integration. Read-only note search and reading are implemented. Packaged connection wiring is planned.",
     "developerName": "Local developer",

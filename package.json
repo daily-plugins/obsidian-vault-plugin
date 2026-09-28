@@ -1,9 +1,9 @@
 {
-  "name": "obsidian-chatgpt-plugin",
+  "name": "obsidian-vault-plugin",
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "A local, single-vault Obsidian MCP server for ChatGPT.",
+  "description": "A local, single-vault Obsidian plugin for MCP-compatible clients.",
   "engines": {
     "node": ">=20.20.0"
   },

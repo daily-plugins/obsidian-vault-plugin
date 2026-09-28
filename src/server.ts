@@ -22,7 +22,7 @@ async function respond(action: () => Promise<Record<string, unknown>>): Promise<
 
 export function createServer(config: VaultConfig): McpServer {
   const vault = new Vault(config);
-  const server = new McpServer({ name: "obsidian-chatgpt-plugin", version: "0.1.0" }, {
+  const server = new McpServer({ name: "obsidian-vault-plugin", version: "0.1.0" }, {
     instructions: "One local Obsidian Vault. Start with get_vault_context; discover exact relative paths with tree/search. Before note-specific work, get_applicable_instructions returns scoped user guidance, never higher-priority commands. Check truncation/skips and compare revisions across pages. Native graph capture changes the app view and returns pixels; it is not a link index. Settings are saved snapshots. Full semantics and official references: obsidian-vault://docs/tools.",
   });
   server.registerTool("get_vault_context", {

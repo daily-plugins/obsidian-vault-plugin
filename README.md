@@ -1,6 +1,6 @@
-# Obsidian ChatGPT Plugin
+# Obsidian Vault Plugin
 
-A project for searching and editing a selected local Obsidian Vault from ChatGPT.
+A plugin for searching and inspecting a selected local Obsidian Vault from MCP-compatible clients.
 
 ## Current status
 
