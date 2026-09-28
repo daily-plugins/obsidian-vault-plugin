@@ -21,7 +21,7 @@ Secure MCP Tunnel does not replace the public endpoint required for public plugi
 2. Implemented: `search_notes` and `read_note` with bounded results and SHA-256 revisions.
 3. `create_note` and `patch_note`: check revision conflicts and design atomic writes and recovery.
 4. Implemented: native graph capture, file tree, scoped instruction discovery, and allowlisted settings inspection. Workflow skills and note writes remain future work.
-5. Tunnel configuration and end-to-end verification in ChatGPT.
+5. Implemented: local tunnel initialization, diagnostics, and foreground launch scripts. Account setup and end-to-end verification in ChatGPT remain operator steps; see [connection guide](chatgpt-connection.md).
 6. A public HTTPS gateway, authentication, a review test Vault, and submission materials.
 
 ## Implementation principles

@@ -15,7 +15,9 @@ A project for searching and editing a selected local Obsidian Vault from ChatGPT
 - An agent-readable guide with official references: [Tool guide](docs/tools.md)
 - A development plugin manifest
 
-Note writing, packaged MCP connection configuration, ChatGPT integration, and public deployment are not implemented yet.
+Private ChatGPT tunnel launch scripts are available: [Connect to ChatGPT](docs/chatgpt-connection.md).
+Live account connection still requires a tunnel ID, runtime key, and developer-mode access.
+Note writing, packaged MCP connection configuration, and public deployment are not implemented yet.
 The manifest is a package scaffold, not a complete installable plugin.
 The server checks that the configured path is an accessible directory; it does not automatically verify that it is an Obsidian Vault.
 
@@ -52,7 +54,11 @@ again. This is the local Inspector token, not an OpenAI API key. Keep it private
 and use the new token after restarting Inspector.
 
 Keep `.env` and actual Vault contents out of Git. The current server does not require an OpenAI API key.
-Manage the runtime key needed for a future Secure MCP Tunnel connection separately.
+Manage the runtime key for Secure MCP Tunnel separately in the ignored `.env.tunnel` file.
+
+For ChatGPT, follow the [connection guide](docs/chatgpt-connection.md), then use
+`npm run tunnel:init`, `npm run tunnel:doctor`, and `npm run remote`.
+The remote command keeps the local agent running through OpenAI's official tunnel client.
 
 ## Implementation approach
 

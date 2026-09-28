@@ -12,6 +12,9 @@
     "build": "tsc",
     "typecheck": "tsc --noEmit",
     "start": "node --env-file=.env dist/index.js",
+    "tunnel:init": "node scripts/tunnel.mjs init",
+    "tunnel:doctor": "node scripts/tunnel.mjs doctor",
+    "remote": "node scripts/tunnel.mjs run",
     "test": "npm run build && tsx --test tests/*.test.ts"
   },
   "dependencies": {
