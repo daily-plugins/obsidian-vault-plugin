@@ -86,7 +86,7 @@ Inspector URL(`localhost:6274`)을 MCP 엔드포인트로 입력하지 마세요
 | Vault에서 AGENTS.md 지침을 찾아줘. | `list_instruction_files` |
 | 조회 가능한 앱 설정 파일 목록을 보여줘. | `list_settings` |
 
-[도구 가이드](tools.md)에 10개 도구를 모두 설명했습니다.
+[도구 가이드](tools.md)에 11개 도구를 모두 설명했습니다.
 
 ## 문제 해결과 수명 주기
 

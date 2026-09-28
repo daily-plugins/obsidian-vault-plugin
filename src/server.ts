@@ -1,3 +1,4 @@
+import { createInstructionFile } from "./instruction-create.js";
 import { InstructionReviews } from "./instruction-review.js";
 import { readFile } from "node:fs/promises";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
@@ -10,7 +11,7 @@ import { SETTINGS_NAMES } from "./settings-files.js";
 import { DEFAULT_INSTRUCTION_NAMES, listInstructionFiles } from "./instructions.js";
 
 const annotations = { readOnlyHint: true, destructiveHint: false, openWorldHint: false };
-const capabilities = ["get_vault_context", "search_notes", "read_note", "get_vault_tree", "list_instruction_files", "get_applicable_instructions", "list_settings", "read_settings", "create_note", "patch_note"];
+const capabilities = ["get_vault_context", "search_notes", "read_note", "get_vault_tree", "list_instruction_files", "get_applicable_instructions", "list_settings", "read_settings", "create_note", "patch_note", "create_instruction_file"];
 async function respond(action: () => Promise<Record<string, unknown>>): Promise<CallToolResult> {
   try {
     const result = await action();
@@ -125,13 +126,25 @@ export function createServer(config: VaultConfig): McpServer {
   }, ({folder, filenames, limit}) => respond(() => listInstructionFiles(vault, folder, filenames, limit)));
   server.registerTool("get_applicable_instructions", {
     title: "Read scoped Vault instructions",
-    description: "Before working on a note, collect instruction files from Vault root through the target's ancestor folders, ordered root-first. Set targetType=file for an existing or planned note whose parent exists; directory for an existing folder. Empty path selects root. Returns scoped text and revisions, never executes it. Deeper guidance may be more specific but does not override the user's request or host rules. Complete file-target reviews including all three default instruction names issue a reviewToken required for create_note/patch_note. It expires in five minutes and is invalidated by changed instructions or a successful write. No implicit semantic merge. Read truncated files using read_note and nextOffset.",
+    description: "Before working on a note, collect instruction files from Vault root through the target's ancestor folders, ordered root-first. Set targetType=file for an existing or planned note whose parent exists; directory for an existing folder. Empty path selects root. Returns scoped text and revisions, never executes it. Deeper guidance may be more specific but does not override the user's request or host rules. Complete file-target reviews including all three default instruction names issue a reviewToken required for create_note/patch_note/create_instruction_file. It expires in five minutes and is invalidated by changed instructions or a successful write. No implicit semantic merge. Read truncated files using read_note and nextOffset.",
     inputSchema: {path: z.string().max(1024).default("").describe("Target Vault-relative file or directory; empty means root."), targetType: z.enum(["file", "directory"]).default("file").describe("file uses ancestor folders; directory also includes instructions directly inside the target folder."), filenames: instructionFilenames},
     outputSchema: {target: z.string(), targetType: z.string(),
       instructions: z.array(z.object({path: z.string(), scope: z.string(), depth: z.number(), revision: z.string(), content: z.string(), nextOffset: z.number().nullable(), totalChars: z.number()})),
       truncated: z.boolean(), skippedFiles: z.number(), incompleteScopes: z.array(z.string()), order: z.string(), notice: z.string(), reviewToken: z.string().nullable(), reviewExpiresInSeconds: z.number().nullable(), reviewNotice: z.string()},
     annotations,
   }, ({path, targetType, filenames}) => respond(() => reviews.inspect(path, targetType, filenames)));
+  server.registerTool("create_instruction_file", {
+    title: "Create a scoped instruction file",
+    description: "Add user-requested guidance as a new AGENTS.md, CLAUDE.md, or INSTRUCTIONS.md file (case-insensitive filename) in an existing visible folder. First call get_applicable_instructions for this exact planned file path and apply its returned guidance. Requires a fresh complete reviewToken even if no prior rules exist. Never overwrites; edit an existing instruction file with read_note and patch_note instead. dryRun defaults to true; false saves. Content must be nonblank and at most 20,000 UTF-16 code units; resulting default guidance at this scope must fit the 40,000-unit review budget. Returns path, applied, revision, bytes, and directory scope (empty for root). The new rule is discovered by subsequent reviews in that folder and descendants; previously issued reviews there become stale. It does not execute instructions, elevate their priority, or change client system prompts. A successful write consumes the token. Normal file exclusions and link checks apply.",
+    inputSchema: {
+      path: z.string().min(1).max(1024).describe("Vault-relative path ending in AGENTS.md, CLAUDE.md, or INSTRUCTIONS.md; parent must exist."),
+      content: z.string().min(1).max(LIMITS.pageChars).describe("Complete user-requested Markdown guidance, at most 20,000 UTF-16 code units."),
+      reviewToken: z.string().uuid().describe("Token from a complete instruction review for this exact planned file path."),
+      dryRun: z.boolean().default(true).describe("true previews without writing; false creates the instruction file."),
+    },
+    outputSchema: {path: z.string(), applied: z.boolean(), revision: z.string(), bytes: z.number(), scope: z.string()},
+    annotations: {readOnlyHint: false, destructiveHint: false, openWorldHint: false, idempotentHint: false},
+  }, ({path, content, reviewToken, dryRun}) => respond(() => createInstructionFile(vault, reviews, path, content, reviewToken, dryRun)));
   server.registerTool("list_settings", {
     title: "List app settings files",
     description: "Inspect allowlisted saved JSON files in the locally configured hidden settings folder (default .vault). Returns catalog labels, availability, and revisions without contents. Use before read_settings. No app installation or schema is assumed; filenames are project compatibility choices. Only direct catalog files are accessible, not arbitrary paths or plugin subdirectories. Missing files do not imply disabled features.",

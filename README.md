@@ -262,6 +262,14 @@ that scoped AGENTS.md/CLAUDE.md/INSTRUCTIONS.md guidance is unchanged, rejects
 missing/expired reviews, and consumes the token after applying a write. This
 requires retrieval before editing; it cannot prove an agent understood the text.
 
+## Adding instruction files
+
+Use `create_instruction_file` to add a new `AGENTS.md`, `CLAUDE.md`, or
+`INSTRUCTIONS.md`. First call `get_applicable_instructions` for the target `path`,
+then pass its `reviewToken` and the full `content`. Preview is the default; apply
+with `dryRun:false`. Update an existing instruction file with `read_note` and
+`patch_note`. See the [tool guide](docs/tools.md#create_instruction_file) for limits and scope.
+
 ## Upgrading to 0.2
 
 `capture_graph_view` and its CLI integration have been removed. Use `list_settings`

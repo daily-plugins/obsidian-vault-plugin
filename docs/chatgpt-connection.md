@@ -114,7 +114,7 @@ Start with small requests and check the displayed tool calls:
 | Find AGENTS.md instructions in my Vault. | `list_instruction_files` |
 | List available app settings files. | `list_settings` |
 
-The [tool guide](tools.md) describes all ten tools.
+The [tool guide](tools.md) describes all eleven tools.
 
 ## Troubleshooting and lifecycle
 

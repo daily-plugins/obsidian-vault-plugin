@@ -3,9 +3,8 @@
 ## When to choose HTTP
 
 Use Streamable HTTP for an MCP client that connects to a URL and can send a
-Bearer token. The default endpoint is `http://127.0.0.1:3000/mcp`. All ten
-Vault tools and mandatory instruction reviews are available. HTTP is a transport
-option; it does not guarantee that a client will display MCP image content.
+Bearer token. The default endpoint is `http://127.0.0.1:3000/mcp`. All eleven
+Vault tools and mandatory instruction reviews are available. HTTP is an alternative transport for the same filesystem tools.
 
 ## Configuration
 

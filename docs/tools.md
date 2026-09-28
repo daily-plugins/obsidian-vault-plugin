@@ -15,6 +15,7 @@ Instruction filenames such as `AGENTS.md`, ancestor scoping, revision hashes, re
 | Understand the connected Vault and limits | `get_vault_context` | Local configuration | None |
 | Find notes containing text | `search_notes` | Filesystem | None |
 | Read saved Markdown | `read_note` | Filesystem | None |
+| Add scoped guidance | `create_instruction_file` | Filesystem | Creates a new instruction file after review when dryRun=false |
 | Create a note | `create_note` | Filesystem | Writes a new note when dryRun=false |
 | Edit a note | `patch_note` | Filesystem | Replaces one unique text match, creates hidden backup when applied |
 | Inspect folders and filenames as a tree | `get_vault_tree` | Filesystem | None |
@@ -197,9 +198,34 @@ and unsaved editor buffers can subsequently overwrite a change. Atomic replaceme
 or durability of directory entries after a power failure. Save/sync the target
 before applying edits and avoid concurrent external changes.
 
+### create_instruction_file
+
+Add a new `AGENTS.md`, `CLAUDE.md`, or `INSTRUCTIONS.md` (case-insensitive) in an
+existing visible folder. Inputs: exact Vault-relative `path`, complete `content`,
+`reviewToken`, and `dryRun` (default true). First review the exact planned file
+with `get_applicable_instructions`, even when no existing instructions are found.
+The ordinary mandatory review rules apply to both preview and application.
+
+Example: `{"path":"Study/AGENTS.md","content":"# Guidance\nUse concise headings.\n","reviewToken":"<token from instruction review>","dryRun":true}`.
+
+Returns `path`, `applied`, `revision`, `bytes`, and `scope` (the parent folder;
+empty string for root). Preview writes nothing. Set `dryRun:false` to create the
+user-requested file; this consumes the review token. Existing files are never
+overwritten. Use `read_note` and revision-checked `patch_note` to extend an existing
+instruction file. No folders are created and no instructions are executed.
+
+Content must be nonblank and no longer than 20,000 UTF-16 code units. The resulting
+default instruction set at this scope must fit the 40,000-unit review budget.
+Deeper folders may have additional rules and still need their own complete review.
+Normal file limits, exclusions, link rejection, and concurrent-editor limitations
+apply. A new file is discovered by subsequent reviews for its folder and descendants;
+older tokens for affected targets fail on their next use. It does not edit system
+prompts or raise the priority of file contents. Custom instruction filenames can
+still be created with `create_note`, but must be explicitly included in discovery.
+
 ## Mandatory instruction review before writes
 
-Both write tools enforce this protocol server-side, including dry runs:
+All three write tools enforce this protocol server-side, including dry runs:
 
 1. Call `get_applicable_instructions` with the exact target note `path` and
    `targetType:"file"`. Keep the default filename set, or include all three default
@@ -207,7 +233,7 @@ Both write tools enforce this protocol server-side, including dry runs:
 2. Read and apply the returned root-to-parent guidance. A complete result includes
    a `reviewToken` and `reviewExpiresInSeconds:300`. Checking that no applicable
    instructions exist also qualifies; skipping discovery does not.
-3. Supply that token to `create_note` or `patch_note`. The server re-reads scoped
+3. Supply that token to `create_note`, `patch_note`, or `create_instruction_file`. The server re-reads scoped
    instructions and rejects added, deleted, changed, or newly unreadable guidance.
 4. Use the token for preview and application within five minutes. An applied write
    consumes it; another write requires another review. Restarting the MCP server

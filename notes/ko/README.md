@@ -188,6 +188,10 @@ docs/tools.md             Agent-facing semantics and official references
 
 쓰기에는 정확한 대상 파일에 대한 완전한 `get_applicable_instructions` 호출에서 받은 새로운 `reviewToken`이 필요합니다. 서버는 해당 범위의 AGENTS.md/CLAUDE.md/INSTRUCTIONS.md 지침이 바뀌지 않았는지 확인하고 검토 누락·만료를 거부하며 쓰기 적용 후 토큰을 소모합니다. 편집 전 지침 조회를 강제하지만 에이전트가 내용을 이해했는지까지 입증하지는 못합니다.
 
+## 지침 파일 추가
+
+`create_instruction_file`로 `AGENTS.md`, `CLAUDE.md`, `INSTRUCTIONS.md`를 새로 만듭니다. 대상 `path`에 대해 `get_applicable_instructions`를 먼저 호출하고 반환된 `reviewToken`과 전체 `content`를 전달합니다. 기본값은 미리보기이며 `dryRun:false`로 적용합니다. 기존 지침 파일 수정은 `read_note`와 `patch_note`를 사용하세요. 생성 한도와 적용 범위는 [도구 가이드](docs/tools.md#create_instruction_file)를 참고하세요.
+
 ## 0.2로 업그레이드
 
 `capture_graph_view`와 CLI 연동을 제거했습니다. 설정 조회에는 `list_settings`, `read_settings`를 사용합니다. 기존 앱 이름이 포함된 도구는 더 이상 등록하지 않습니다. 도구 가이드 리소스는 `vault://docs/tools`입니다. 재빌드 후 stdio·HTTP·터널 프로세스를 재시작하고 클라이언트 메타데이터를 갱신한 뒤 새 세션을 시작하세요.
