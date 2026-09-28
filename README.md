@@ -53,8 +53,9 @@ Manage the runtime key needed for a future Secure MCP Tunnel connection separate
 
 ## Implementation approach
 
-The server uses Node.js filesystem APIs directly. It does not run shell commands
-or call the Obsidian plugin API. Obsidian does not need to be running. Only saved
+File tools use Node.js filesystem APIs directly and do not require Obsidian to be running.
+The separate `capture_graph_view` tool invokes fixed official Obsidian CLI commands
+without a shell. It requires the desktop app and never accepts arbitrary commands or code. Only saved
 files on disk are visible; editor buffers, resolved backlinks, and plugin state
 are not available through this implementation. No tool modifies files.
 
@@ -105,6 +106,27 @@ Visible attachment names are included, but their contents are not read. Director
 at the depth limit are not expanded. `truncated` flags any depth, entry, or scan
 limit; call again with a specific `folder` to inspect a subtree. Hidden paths,
 excluded paths, symlinks, and hard-linked files remain inaccessible.
+
+## Native Obsidian Graph view
+
+Call `capture_graph_view` with `{}` to receive the real Obsidian app screenshot
+as MCP image content. This is a static PNG, not a JSON link graph or an interactive
+widget. Requires Obsidian 1.12.7+, the CLI enabled under Settings → General, and
+the Graph view core plugin. The app must be available; the CLI may launch it.
+
+The server verifies the app's Vault path, discovers the `graph:open` command,
+opens/focuses Graph view, waits briefly for rendering, and calls the official
+`dev:screenshot` command. Temporary screenshots are deleted after reading.
+The graph remains open. Existing graph filters, colors, layout, and app theme
+are preserved; layout animation may still be settling at capture time.
+
+The screenshot covers the app, so sidebars or other visible panes may appear.
+File-tool exclusions do not filter pixels in the native app. Only request this
+tool when you intend to share the visible app view. A maximum 10 MiB PNG is accepted.
+Set `OBSIDIAN_APP_VAULT` if your app Vault name differs from its folder name;
+set `OBSIDIAN_CLI_PATH` if the executable is not on PATH.
+
+Reference: [Official Obsidian CLI](https://obsidian.md/help/cli).
 
 ## Limits and verification
 

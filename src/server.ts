@@ -3,9 +3,10 @@ import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { z } from "zod";
 import type { VaultConfig } from "./config.js";
 import { LIMITS, safeError, Vault } from "./vault.js";
+import { captureGraphView } from "./graph-view.js";
 
 const annotations = { readOnlyHint: true, destructiveHint: false, openWorldHint: false };
-const capabilities = ["get_vault_context", "search_notes", "read_note", "get_vault_tree"];
+const capabilities = ["get_vault_context", "search_notes", "read_note", "get_vault_tree", "capture_graph_view"];
 async function respond(action: () => Promise<Record<string, unknown>>): Promise<CallToolResult> {
   try {
     const result = await action();
@@ -73,5 +74,17 @@ export function createServer(config: VaultConfig): McpServer {
     },
     annotations,
   }, ({folder, maxDepth, maxEntries}) => respond(() => vault.getTree(folder, maxDepth, maxEntries)));
+  server.registerTool("capture_graph_view", {
+    title: "Capture Obsidian Graph view",
+    description: "Get the actual rendered Obsidian Graph view as a PNG image, not a reconstructed link graph. Requires Obsidian 1.12.7+, its CLI enabled, and the Graph view core plugin. Opens/focuses Graph view in the configured Vault and captures the app window; changes visible workspace state but does not edit notes. Preserves existing graph filters/theme. Sidebars and other visible panes may appear. Filesystem exclusions do not filter this image: only call when the user requests the actual app view. Returns a static image, not an interactive widget. Official commands: https://obsidian.md/help/cli",
+    inputSchema: {},
+    annotations: {readOnlyHint: false, destructiveHint: false, openWorldHint: false},
+  }, async () => {
+    try {
+      const screenshot = await captureGraphView(config);
+      return {content: [{type: "text" as const, text: screenshot.description},
+        {type: "image" as const, data: screenshot.data, mimeType: screenshot.mimeType}]};
+    } catch (error) { return {isError: true, content: [{type: "text" as const, text: safeError(error)}]}; }
+  });
   return server;
 }

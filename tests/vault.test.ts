@@ -86,7 +86,7 @@ test("MCP stdio exposes tools, validates inputs, and returns sanitized errors", 
   try {
     await client.connect(new StdioClientTransport({command: process.execPath, args: ["dist/index.js"],
       env: {OBSIDIAN_VAULT_PATH: f.root, OBSIDIAN_VAULT_ID: "test", OBSIDIAN_EXCLUDED_PATHS: '["private"]'}}));
-    assert.deepEqual((await client.listTools()).tools.map(t => t.name), ["get_vault_context", "search_notes", "read_note", "get_vault_tree"]);
+    assert.deepEqual((await client.listTools()).tools.map(t => t.name), ["get_vault_context", "search_notes", "read_note", "get_vault_tree", "capture_graph_view"]);
     const tree = await client.callTool({name: "get_vault_tree", arguments: {}});
     assert.equal(tree.isError, undefined);
     assert.ok(String(tree.structuredContent?.tree).includes("notes/"));
